@@ -95,4 +95,27 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponseDto.error("An unexpected error occurred", "Internal server error"));
     }
+
+    //SkillAtom Exceptions
+
+    @ExceptionHandler(SkillAtomNotFoundException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleSkillAtomNotFoundException(SkillAtomNotFoundException ex) {
+        log.error("Skill atom not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponseDto.error(ex.getMessage(), "Skill atom not found"));
+    }
+
+    @ExceptionHandler(DuplicateSkillAtomException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleDuplicateSkillAtomException(DuplicateSkillAtomException ex) {
+        log.error("Duplicate skill atom error: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponseDto.error(ex.getMessage(), "Duplicate skill atom"));
+    }
+
+    @ExceptionHandler(SkillAtomProcessingException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleSkillAtomProcessingException(SkillAtomProcessingException ex) {
+        log.error("Skill atom processing error: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponseDto.error(ex.getMessage(), "Skill atom processing failed"));
+    }
 }

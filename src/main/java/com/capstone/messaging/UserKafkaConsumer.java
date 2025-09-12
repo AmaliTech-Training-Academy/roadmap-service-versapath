@@ -31,7 +31,6 @@ public class KafkaConsumer {
     @KafkaListener(topics = "user.create")
     @Retryable(
             retryFor = {UserProcessingException.class, Exception.class},
-            maxAttempts = 3,
             backoff = @Backoff(delay = 1000, multiplier = 2)
     )
     public void listen(
@@ -60,12 +59,12 @@ public class KafkaConsumer {
         } catch (UserProcessingException e) {
             log.error("Failed to process user event for userId: {}. Error: {}",
                     event.getVersapathUserId(), e.getMessage(), e);
-            handleProcessingFailure(event, e, acknowledgment);
+            handleProcessingFailure(event, acknowledgment);
 
         } catch (Exception e) {
             log.error("Unexpected error processing user event for userId: {}. Error: {}",
                     event.getVersapathUserId(), e.getMessage(), e);
-            handleProcessingFailure(event, e, acknowledgment);
+            handleProcessingFailure(event, acknowledgment);
         }
     }
 
@@ -99,7 +98,7 @@ public class KafkaConsumer {
         log.debug("User event validation successful for userId: {}", event.getVersapathUserId());
     }
 
-    private void handleProcessingFailure(ProduceUserEvent event, Exception e, Acknowledgment acknowledgment) {
+    private void handleProcessingFailure(ProduceUserEvent event, Acknowledgment acknowledgment) {
         String userId = event.getVersapathUserId().toString();
 
         log.error("Processing failed for user event with userId: {}. Sending to DLT topic: {}",
@@ -122,7 +121,6 @@ public class KafkaConsumer {
         } catch (Exception dltException) {
             log.error("Critical: Failed to send message to DLT for userId: {}. Message will be retried by Kafka",
                     userId, dltException);
-            // Don't acknowledge - let Kafka handle the retry
         }
     }
 }

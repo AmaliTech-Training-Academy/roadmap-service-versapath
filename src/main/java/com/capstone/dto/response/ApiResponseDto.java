@@ -43,23 +43,6 @@ public class ApiResponseDto<T> {
                 .build();
     }
 
-    // Static factory methods for error responses
-    public static <T> ApiResponseDto<T> error(List<String> errors) {
-        return ApiResponseDto.<T>builder()
-                .success(false)
-                .message("Operation failed")
-                .errors(errors)
-                .build();
-    }
-
-    public static <T> ApiResponseDto<T> error(String error) {
-        return ApiResponseDto.<T>builder()
-                .success(false)
-                .message("Operation failed")
-                .errors(List.of(error))
-                .build();
-    }
-
     public static <T> ApiResponseDto<T> error(List<String> errors, String message) {
         return ApiResponseDto.<T>builder()
                 .success(false)

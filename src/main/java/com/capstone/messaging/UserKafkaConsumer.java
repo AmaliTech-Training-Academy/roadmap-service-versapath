@@ -20,7 +20,7 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class KafkaConsumer {
+public class UserKafkaConsumer {
 
     private final UserSnapshotService userSnapshotService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -33,7 +33,7 @@ public class KafkaConsumer {
             retryFor = {UserProcessingException.class, Exception.class},
             backoff = @Backoff(delay = 1000, multiplier = 2)
     )
-    public void listen(
+    public void listenUserCreate(
             @Payload ProduceUserEvent event,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,

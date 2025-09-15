@@ -178,4 +178,5 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                 .body(ApiResponseDto.error(ex.getMessage(), "Track-capsule mapping failed"));
     }
+
 }

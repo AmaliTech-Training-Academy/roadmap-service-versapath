@@ -24,10 +24,10 @@ public class AtomKafkaConsumer {
     private final SkillAtomSnapshotService skillAtomSnapshotService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    @Value("${app.kafka.atom-dlt-topic:atom.create.dlt}")
+    @Value("${KAFKA_ATOM_DLT_TOPIC:atom.create.dlt}")
     private String atomDltTopic;
 
-    @KafkaListener(topics = "atom.create")
+    @KafkaListener(topics = "${KAFKA_ATOM_TOPIC:atom.create}")
     @Retryable(
             retryFor = {SkillAtomProcessingException.class, Exception.class},
             backoff = @Backoff(delay = 1000, multiplier = 2)

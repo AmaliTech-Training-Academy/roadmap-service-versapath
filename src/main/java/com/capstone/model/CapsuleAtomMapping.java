@@ -83,13 +83,4 @@ public class CapsuleAtomMapping {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-
-    // Convenience methods for business logic
-    public UUID getSkillCapsuleId() {
-        return skillCapsule != null ? skillCapsule.getSkillCapsuleId() : null;
-    }
-
-    public UUID getSkillAtomId() {
-        return skillAtom != null ? skillAtom.getSkillAtomId() : null;
-    }
 }

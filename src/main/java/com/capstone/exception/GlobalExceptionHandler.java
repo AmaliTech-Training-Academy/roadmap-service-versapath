@@ -118,4 +118,33 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponseDto.error(ex.getMessage(), "Skill atom processing failed"));
     }
+
+    // SkillCapsule Exceptions
+    @ExceptionHandler(SkillCapsuleNotFoundException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleSkillCapsuleNotFoundException(SkillCapsuleNotFoundException ex) {
+        log.error("Skill capsule not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponseDto.error(ex.getMessage(), "Skill capsule not found"));
+    }
+
+    @ExceptionHandler(DuplicateSkillCapsuleException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleDuplicateSkillCapsuleException(DuplicateSkillCapsuleException ex) {
+        log.error("Duplicate skill capsule error: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponseDto.error(ex.getMessage(), "Duplicate skill capsule"));
+    }
+
+    @ExceptionHandler(SkillCapsuleProcessingException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleSkillCapsuleProcessingException(SkillCapsuleProcessingException ex) {
+        log.error("Skill capsule processing error: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponseDto.error(ex.getMessage(), "Skill capsule processing failed"));
+    }
+
+    @ExceptionHandler(CapsuleAtomMappingException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleCapsuleAtomMappingException(CapsuleAtomMappingException ex) {
+        log.error("Capsule-atom mapping error: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(ApiResponseDto.error(ex.getMessage(), "Capsule-atom mapping failed"));
+    }
 }

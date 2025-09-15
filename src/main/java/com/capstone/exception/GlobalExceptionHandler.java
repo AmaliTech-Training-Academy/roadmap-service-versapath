@@ -120,6 +120,7 @@ public class GlobalExceptionHandler {
     }
 
     // SkillCapsule Exceptions
+
     @ExceptionHandler(SkillCapsuleNotFoundException.class)
     public ResponseEntity<ApiResponseDto<Void>> handleSkillCapsuleNotFoundException(SkillCapsuleNotFoundException ex) {
         log.error("Skill capsule not found: {}", ex.getMessage());
@@ -146,5 +147,35 @@ public class GlobalExceptionHandler {
         log.error("Capsule-atom mapping error: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                 .body(ApiResponseDto.error(ex.getMessage(), "Capsule-atom mapping failed"));
+    }
+
+    // GrowthTrack Exception
+
+    @ExceptionHandler(GrowthTrackNotFoundException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleGrowthTrackNotFoundException(GrowthTrackNotFoundException ex) {
+        log.error("Growth track not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponseDto.error(ex.getMessage(), "Growth track not found"));
+    }
+
+    @ExceptionHandler(DuplicateGrowthTrackException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleDuplicateGrowthTrackException(DuplicateGrowthTrackException ex) {
+        log.error("Duplicate growth track error: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponseDto.error(ex.getMessage(), "Duplicate growth track"));
+    }
+
+    @ExceptionHandler(GrowthTrackProcessingException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleGrowthTrackProcessingException(GrowthTrackProcessingException ex) {
+        log.error("Growth track processing error: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponseDto.error(ex.getMessage(), "Growth track processing failed"));
+    }
+
+    @ExceptionHandler(TrackCapsuleMappingException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleTrackCapsuleMappingException(TrackCapsuleMappingException ex) {
+        log.error("Track-capsule mapping error: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(ApiResponseDto.error(ex.getMessage(), "Track-capsule mapping failed"));
     }
 }

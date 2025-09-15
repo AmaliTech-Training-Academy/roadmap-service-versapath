@@ -8,7 +8,7 @@ spring:
     import: optional:configserver:${CONFIG_SERVER_URL}
 
   kafka:
-    bootstrap-servers: pkc-619z3.us-east1.gcp.confluent.cloud:9092
+    bootstrap-servers: ${BOOTSTRAP_SERVER}
     properties:
       sasl.mechanism: PLAIN
       security.protocol: SASL_SSL
@@ -44,7 +44,8 @@ spring:
 
 app:
   kafka:
-    dlt-topic: user.create.dlt
-    atom-dlt-topic: atom.create.dlt
-    capsule-dlt-topic: capsule.create.dlt
-    growthTrack-dlt-topic: growthTrack.create.dlt
+    dlt-topic: ${KAFKA_USER_DLT_TOPIC}
+    atom-dlt-topic: ${KAFKA_ATOM_DLT_TOPIC}
+    capsule-dlt-topic: ${KAFKA_CAPSULE_DLT_TOPIC}
+    growthTrack-dlt-topic: ${KAFKA_GROWTH_TRACK_DLT_TOPIC}
+    talentRoute-dlt-topic: ${KAFKA_TALENT_ROUTE_DLT_TOPIC}

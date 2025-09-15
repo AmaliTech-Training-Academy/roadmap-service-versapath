@@ -25,10 +25,10 @@ public class UserKafkaConsumer {
     private final UserSnapshotService userSnapshotService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    @Value("${app.kafka.dlt-topic:user.create.dlt}")
+    @Value("${KAFKA_USER_DLT_TOPIC:user.create.dlt}")
     private String dltTopic;
 
-    @KafkaListener(topics = "user.create")
+    @KafkaListener(topics ="${KAFKA_USER_TOPIC:user.create}")
     @Retryable(
             retryFor = {UserProcessingException.class, Exception.class},
             backoff = @Backoff(delay = 1000, multiplier = 2)

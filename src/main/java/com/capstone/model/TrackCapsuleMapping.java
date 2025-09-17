@@ -44,6 +44,7 @@ public class TrackCapsuleMapping {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "growth_track_id",
+            referencedColumnName = "growth_track_id",
             nullable = false,
             foreignKey = @ForeignKey(name = "fk_track_mapping_track")
     )
@@ -53,6 +54,7 @@ public class TrackCapsuleMapping {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "skill_capsule_id",
+            referencedColumnName = "skill_capsule_id",
             nullable = false,
             foreignKey = @ForeignKey(name = "fk_track_mapping_capsule")
     )

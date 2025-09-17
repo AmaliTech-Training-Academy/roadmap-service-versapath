@@ -2,6 +2,7 @@ package com.capstone.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.UuidGenerator;
@@ -22,6 +23,10 @@ public class TalentRouteSnapshot {
     @UuidGenerator
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
+
+    @NotNull(message = "Talent Route ID is required")
+    @Column(nullable = false, unique = true, updatable = false, name = "talent_route_id")
+    private UUID talentRouteId;
 
     @NotBlank(message = "Route name is required")
     @Size(max = 50, message = "Route name must not exceed 50 characters")

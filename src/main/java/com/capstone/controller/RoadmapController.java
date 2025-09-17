@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class RoadmapController {
     @GetMapping()
     @Operation(summary = "Assign track", description = "This end point allows a learner to select talent route")
-    public ResponseEntity<String> assignRouteToLearner() {
+  public ResponseEntity<String> assignRouteToLearner() {
         //TODO: assign talent route to a learner
         return ResponseEntity.status(HttpStatus.OK).body("response");
     }

@@ -15,6 +15,8 @@ import com.capstone.util.PaginationUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.common.event.SkillCapsuleEvent;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -36,6 +38,7 @@ public class SkillCapsuleSnapshotServiceImpl implements SkillCapsuleSnapshotServ
     private final SkillAtomSnapshotService skillAtomSnapshotService;
 
     @Override
+    @CacheEvict(value = {"skill-capsules", "skill-capsules-with-atoms", "skill-capsules-search", "skill-capsule-single"}, allEntries = true)
     public SkillCapsuleSnapshot processSkillCapsuleEvent(SkillCapsuleEvent event) {
         log.info("Processing skill capsule event for capsuleId: {}", event.getId());
 
@@ -249,6 +252,7 @@ public class SkillCapsuleSnapshotServiceImpl implements SkillCapsuleSnapshotServ
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "skill-capsules", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public PaginatedResponseDto<SkillCapsuleResponseDto> findAllBasic(Pageable pageable) {
         log.debug("Finding all skill capsules with basic info, page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
         Page<SkillCapsuleSnapshot> pageData = skillCapsuleSnapshotRepository.findAll(pageable);
@@ -258,6 +262,7 @@ public class SkillCapsuleSnapshotServiceImpl implements SkillCapsuleSnapshotServ
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "skill-capsules-with-atoms", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public PaginatedResponseDto<SkillCapsuleResponseDto> findAllWithAtomSummaries(Pageable pageable) {
         log.debug("Finding all skill capsules with atom summaries, page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
         Page<SkillCapsuleSnapshot> pageData = skillCapsuleSnapshotRepository.findAllWithAtomMappings(pageable);
@@ -267,6 +272,7 @@ public class SkillCapsuleSnapshotServiceImpl implements SkillCapsuleSnapshotServ
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "skill-capsules-search", key = "#capsuleName + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public PaginatedResponseDto<SkillCapsuleResponseDto> searchByCapsuleNameBasic(String capsuleName, Pageable pageable) {
         log.debug("Searching skill capsules by name: '{}', page: {}, size: {}", capsuleName, pageable.getPageNumber(), pageable.getPageSize());
         Page<SkillCapsuleSnapshot> pageData = skillCapsuleSnapshotRepository.findByCapsuleNameContainingIgnoreCase(capsuleName, pageable);
@@ -276,6 +282,7 @@ public class SkillCapsuleSnapshotServiceImpl implements SkillCapsuleSnapshotServ
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "skill-capsules-search", key = "#difficultyLevel + '-difficulty-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public PaginatedResponseDto<SkillCapsuleResponseDto> findByDifficultyLevelBasic(String difficultyLevel, Pageable pageable) {
         log.debug("Finding skill capsules by difficulty level: '{}', page: {}, size: {}", difficultyLevel, pageable.getPageNumber(), pageable.getPageSize());
         Page<SkillCapsuleSnapshot> pageData = skillCapsuleSnapshotRepository.findByDifficultyLevel(difficultyLevel, pageable);
@@ -285,6 +292,7 @@ public class SkillCapsuleSnapshotServiceImpl implements SkillCapsuleSnapshotServ
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "skill-capsule-single", key = "#skillCapsuleId")
     public Optional<SkillCapsuleResponseDto> findBySkillCapsuleIdBasic(UUID skillCapsuleId) {
         log.debug("Finding skill capsule by ID with basic info: {}", skillCapsuleId);
         return skillCapsuleSnapshotRepository.findBySkillCapsuleId(skillCapsuleId)
@@ -293,6 +301,7 @@ public class SkillCapsuleSnapshotServiceImpl implements SkillCapsuleSnapshotServ
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "skill-capsule-single", key = "#skillCapsuleId + '-with-atoms'")
     public Optional<SkillCapsuleResponseDto> findBySkillCapsuleIdWithAtomSummaries(UUID skillCapsuleId) {
         log.debug("Finding skill capsule by ID with atom summaries: {}", skillCapsuleId);
         return skillCapsuleSnapshotRepository.findBySkillCapsuleIdWithAtomMappings(skillCapsuleId)

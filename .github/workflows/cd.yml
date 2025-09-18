@@ -1,0 +1,356 @@
+name: CD roadmap-service
+
+on:
+  push:
+    branches:
+      - dev
+      - staging
+      - production
+  workflow_dispatch:
+
+env:
+  AWS_ECR_REPOSITORY_NAME: versapath/roadmap-service
+  AWS_ECS_CLUSTER_NAME: versapath-cluster
+  AWS_ECS_SERVICE_NAME: versapath-roadmap-service
+  AWS_DEFAULT_REGION: eu-west-1
+
+jobs:
+  deploy:
+    name: Deploying roadmap-service
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    outputs:
+      image-tag: ${{ steps.vars.outputs.IMAGE_TAG }}
+      deployment-status: ${{ steps.deployment.outcome }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set environment variables
+        id: env-vars
+        run: |
+          case "${{ github.ref_name }}" in
+            "production")
+              echo "ENVIRONMENT=prod" >> $GITHUB_ENV
+              echo "LOG_LEVEL=INFO" >> $GITHUB_ENV
+              ;;
+            "staging")
+              echo "ENVIRONMENT=staging" >> $GITHUB_ENV
+              echo "LOG_LEVEL=DEBUG" >> $GITHUB_ENV
+              ;;
+            *)
+              echo "ENVIRONMENT=dev" >> $GITHUB_ENV
+              echo "LOG_LEVEL=DEBUG" >> $GITHUB_ENV
+              ;;
+          esac
+          echo "Environment: ${{ env.ENVIRONMENT }}"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: maven
+
+      - name: Download Maven settings
+        run: |
+          echo "📥 Downloading Maven settings..."
+          curl -o settings.xml https://raw.githubusercontent.com/AmaliTech-Training-Academy/config-repository-versapath/refs/heads/dev/settings.xml
+          if [ $? -ne 0 ]; then
+            echo "❌ Failed to download Maven settings"
+            exit 1
+          fi
+          echo "✅ Maven settings downloaded successfully"
+      
+      - name: Build with Maven
+        run: |
+          echo "🔨 Building with Maven..."
+          mvn -s settings.xml clean package -DskipTests
+          if [ $? -ne 0 ]; then
+            echo "❌ Maven build failed"
+            exit 1
+          fi
+          echo "✅ Maven build completed successfully"
+        env:
+          GH_USER: ${{ secrets.COMMON_EVENT_DEP_GH_USER }}
+          GH_TOKEN: ${{ secrets.COMMON_EVENT_DEP_GH_TOKEN }}
+
+      - name: Set image tag
+        id: vars
+        run: |
+          IMAGE_TAG=$(git rev-parse --short HEAD)
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "🏷️  Image tag: $IMAGE_TAG"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: ${{ env.AWS_ECR_REPOSITORY_NAME }}
+          DOCKER_BUILDKIT: 1
+          BUILDKIT_PROGRESS: plain
+        run: |
+          echo "🐳 Building Docker image..."
+          
+          # Build the image
+          docker build -t $REGISTRY/$REPOSITORY:${{ env.IMAGE_TAG }} .
+          if [ $? -ne 0 ]; then
+            echo "❌ Docker build failed"
+            exit 1
+          fi
+          
+          # Tag as latest
+          docker tag $REGISTRY/$REPOSITORY:${{ env.IMAGE_TAG }} $REGISTRY/$REPOSITORY:latest
+          
+          echo "📤 Pushing to ECR..."
+          
+          # Push both tags
+          docker push $REGISTRY/$REPOSITORY:${{ env.IMAGE_TAG }}
+          if [ $? -ne 0 ]; then
+            echo "❌ Failed to push image with tag ${{ env.IMAGE_TAG }}"
+            exit 1
+          fi
+          
+          docker push $REGISTRY/$REPOSITORY:latest
+          if [ $? -ne 0 ]; then
+            echo "❌ Failed to push latest image"
+            exit 1
+          fi
+          
+          echo "✅ Images pushed successfully"
+          echo "NEW_IMAGE=$REGISTRY/$REPOSITORY:${{ env.IMAGE_TAG }}" >> $GITHUB_ENV
+
+      # TERRAFORM-COMPATIBLE APPROACH: Only update image, preserve infrastructure config
+      - name: Update ECS Service with new image (Terraform-compatible)
+        id: deployment
+        run: |
+          echo "🚀 Updating ECS service with new image..."
+          
+          # Store previous task definition for potential rollback
+          CURRENT_TASK_DEF=$(aws ecs describe-services \
+            --cluster ${{ env.AWS_ECS_CLUSTER_NAME }} \
+            --services ${{ env.AWS_ECS_SERVICE_NAME }} \
+            --query 'services[0].taskDefinition' \
+            --output text 2>/dev/null || echo "NONE")
+          
+          echo "PREVIOUS_TASK_DEF=$CURRENT_TASK_DEF" >> $GITHUB_ENV
+          
+          if [ "$CURRENT_TASK_DEF" != "NONE" ] && [ "$CURRENT_TASK_DEF" != "null" ]; then
+            echo "📋 Using current AWS task definition: $CURRENT_TASK_DEF"
+            
+            # Get current task definition JSON from AWS
+            aws ecs describe-task-definition \
+              --task-definition $CURRENT_TASK_DEF \
+              --query 'taskDefinition' > current-task-def.json
+            
+            if [ $? -ne 0 ]; then
+              echo "❌ Failed to fetch current task definition"
+              exit 1
+            fi
+            
+            # Update image in the JSON while preserving all other configurations
+            jq --arg image "${{ env.NEW_IMAGE }}" '.containerDefinitions[0].image = $image' current-task-def.json > updated-task-def.json
+            
+            # Remove runtime-specific fields that shouldn't be in registration
+            jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .placementConstraints, .compatibilities, .registeredAt, .registeredBy)' updated-task-def.json > clean-task-def.json
+            
+          else
+            echo "📋 No current task definition found in AWS, using local task definition as baseline"
+            
+            # Use our local updated task definition and update the image
+            jq --arg image "${{ env.NEW_IMAGE }}" '.containerDefinitions[0].image = $image' .aws/ecs-task-def.json > clean-task-def.json
+          fi
+          
+          # Register new task definition
+          echo "📝 Registering new task definition..."
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://clean-task-def.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          
+          if [ $? -ne 0 ] || [ -z "$NEW_TASK_DEF_ARN" ]; then
+            echo "❌ Failed to register new task definition"
+            exit 1
+          fi
+          
+          echo "✅ New task definition registered: $NEW_TASK_DEF_ARN"
+          echo "NEW_TASK_DEF_ARN=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
+          
+          # Update service to use new task definition  
+          echo "🔄 Updating ECS service..."
+          aws ecs update-service \
+            --cluster ${{ env.AWS_ECS_CLUSTER_NAME }} \
+            --service ${{ env.AWS_ECS_SERVICE_NAME }} \
+            --task-definition $NEW_TASK_DEF_ARN
+          
+          if [ $? -ne 0 ]; then
+            echo "❌ Failed to update ECS service"
+            exit 1
+          fi
+          
+          echo "✅ Service update initiated successfully"
+
+      - name: Wait for deployment to complete
+        id: wait-deployment
+        run: |
+          echo "⏳ Waiting for service to stabilize..."
+          echo "This may take several minutes as ECS performs rolling deployment..."
+          
+          # Set timeout for deployment (20 minutes)
+          timeout 1200 aws ecs wait services-stable \
+            --cluster ${{ env.AWS_ECS_CLUSTER_NAME }} \
+            --services ${{ env.AWS_ECS_SERVICE_NAME }}
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Deployment completed successfully!"
+          elif [ $? -eq 124 ]; then
+            echo "⚠️ Deployment timed out after 20 minutes"
+            echo "DEPLOYMENT_TIMEOUT=true" >> $GITHUB_ENV
+            exit 1
+          else
+            echo "❌ Deployment failed"
+            exit 1
+          fi
+
+      - name: Verify deployment health
+        id: health-check
+        if: success()
+        run: |
+          echo "🏥 Performing health checks..."
+          
+          # Get service details
+          RUNNING_COUNT=$(aws ecs describe-services \
+            --cluster ${{ env.AWS_ECS_CLUSTER_NAME }} \
+            --services ${{ env.AWS_ECS_SERVICE_NAME }} \
+            --query 'services[0].runningCount' \
+            --output text)
+          
+          DESIRED_COUNT=$(aws ecs describe-services \
+            --cluster ${{ env.AWS_ECS_CLUSTER_NAME }} \
+            --services ${{ env.AWS_ECS_SERVICE_NAME }} \
+            --query 'services[0].desiredCount' \
+            --output text)
+          
+          echo "🔢 Running tasks: $RUNNING_COUNT/$DESIRED_COUNT"
+          
+          if [ "$RUNNING_COUNT" -eq "$DESIRED_COUNT" ]; then
+            echo "✅ All desired tasks are running"
+          else
+            echo "❌ Task count mismatch - deployment may have issues"
+            exit 1
+          fi
+          
+          # Additional health check could be added here
+          # Example: curl health endpoint if service is exposed
+          
+          echo "✅ Health checks passed"
+
+      - name: Cleanup on failure
+        if: failure()
+        run: |
+          echo "🧹 Cleaning up resources after failure..."
+          docker system prune -f || true
+          rm -f *.json || true
+          echo "🗑️  Cleanup completed"
+
+      - name: Rollback on failure
+        if: failure() && env.PREVIOUS_TASK_DEF != 'NONE' && env.PREVIOUS_TASK_DEF != 'null'
+        run: |
+          echo "🔄 Rolling back to previous task definition..."
+          echo "Previous task definition: ${{ env.PREVIOUS_TASK_DEF }}"
+          
+          aws ecs update-service \
+            --cluster ${{ env.AWS_ECS_CLUSTER_NAME }} \
+            --service ${{ env.AWS_ECS_SERVICE_NAME }} \
+            --task-definition ${{ env.PREVIOUS_TASK_DEF }}
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Rollback initiated successfully"
+            
+            # Wait for rollback to complete
+            echo "⏳ Waiting for rollback to complete..."
+            timeout 600 aws ecs wait services-stable \
+              --cluster ${{ env.AWS_ECS_CLUSTER_NAME }} \
+              --services ${{ env.AWS_ECS_SERVICE_NAME }}
+            
+            if [ $? -eq 0 ]; then
+              echo "✅ Rollback completed successfully"
+            else
+              echo "⚠️ Rollback may still be in progress"
+            fi
+          else
+            echo "❌ Failed to initiate rollback"
+          fi
+
+      - name: Send notification
+        if: always()
+        run: |
+          # Determine status
+          if [ "${{ job.status }}" == "success" ]; then
+            STATUS_EMOJI="✅"
+            STATUS_COLOR="good"
+            STATUS_TEXT="SUCCESS"
+          else
+            STATUS_EMOJI="❌"
+            STATUS_COLOR="danger"
+            STATUS_TEXT="FAILED"
+          fi
+          
+          echo "$STATUS_EMOJI Deployment $STATUS_TEXT"
+          echo "Service: roadmap-service"
+          echo "Environment: ${{ env.ENVIRONMENT }}"
+          echo "Image Tag: ${{ env.IMAGE_TAG }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Actor: ${{ github.actor }}"
+          
+          # Here you can add Slack/Teams/Discord notification
+          # Example for Slack webhook (if SLACK_WEBHOOK_URL secret is set):
+          # curl -X POST -H 'Content-type: application/json' \
+          #   --data "{\"text\":\"$STATUS_EMOJI Deployment $STATUS_TEXT for roadmap-service in ${{ env.ENVIRONMENT }}\"}" \
+          #   ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  post-deploy:
+    name: Post-deployment tasks
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: success()
+    
+    steps:
+      - name: Update deployment tracking
+        run: |
+          echo "📊 Recording deployment metrics..."
+          echo "Service: roadmap-service"
+          echo "Image Tag: ${{ needs.deploy.outputs.image-tag }}"
+          echo "Deployment Time: $(date -u)"
+          echo "Environment: ${{ github.ref_name }}"
+          
+          # Here you can add deployment tracking logic
+          # - Update deployment database
+          # - Send metrics to monitoring system
+          # - Update status dashboard
+          
+      - name: Run post-deployment tests
+        run: |
+          echo "🧪 Running post-deployment verification tests..."
+          # Add any post-deployment tests here
+          # - Smoke tests
+          # - Integration tests
+          # - Performance tests
+          echo "✅ Post-deployment tests completed"

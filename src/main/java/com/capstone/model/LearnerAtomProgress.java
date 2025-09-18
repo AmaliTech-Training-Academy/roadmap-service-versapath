@@ -29,7 +29,11 @@ public class LearnerAtomProgress {
 
     @NotNull(message = "Skill atom is required")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "skill_atom_id", nullable = false)
+    @JoinColumn(
+            name = "skill_atom_id",
+            referencedColumnName = "skill_atom_id",
+            nullable = false
+    )
     private SkillAtomSnapshot skillAtom;
 
     @Builder.Default

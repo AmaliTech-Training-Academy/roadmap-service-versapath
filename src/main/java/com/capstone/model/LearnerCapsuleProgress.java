@@ -32,7 +32,11 @@ public class LearnerCapsuleProgress {
 
     @NotNull(message = "Skill capsule is required")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "skill_capsule_id", nullable = false)
+    @JoinColumn(
+            name = "skill_capsule_id",
+            referencedColumnName = "skill_capsule_id",
+            nullable = false
+    )
     private SkillCapsuleSnapshot skillCapsule;
 
     @Builder.Default

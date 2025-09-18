@@ -179,4 +179,27 @@ public class GlobalExceptionHandler {
                 .body(ApiResponseDto.error(ex.getMessage(), "Track-capsule mapping failed"));
     }
 
+    // GrowthTrack Exception
+
+    @ExceptionHandler(DuplicateTalentRouteException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleDuplicateGrowthTrackException(DuplicateTalentRouteException ex) {
+        log.error("Duplicate talent route error: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponseDto.error(ex.getMessage(), "Duplicate talent route"));
+    }
+
+    @ExceptionHandler(TalentRouteProcessingException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleGrowthTrackProcessingException(TalentRouteProcessingException ex) {
+        log.error("Talent route processing error: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponseDto.error(ex.getMessage(), "Talent route processing failed"));
+    }
+
+    @ExceptionHandler(RouteTrackMappingException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleTrackCapsuleMappingException(RouteTrackMappingException ex) {
+        log.error("Route-track mapping error: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(ApiResponseDto.error(ex.getMessage(), "Route-track mapping failed"));
+    }
+
 }

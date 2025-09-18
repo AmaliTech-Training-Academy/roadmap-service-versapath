@@ -50,6 +50,9 @@ public class LearnerAtomProgress {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "is_completed", nullable = false, columnDefinition = "boolean default false")
+    private boolean isCompleted;
+
     @PrePersist
     protected void onCreate() {
         updatedAt = LocalDateTime.now();

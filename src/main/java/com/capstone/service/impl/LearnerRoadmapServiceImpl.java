@@ -20,6 +20,7 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
     private final UserSnapshotRepository userSnapshotRepository;
     private final RouteTrackMappingRepository routeTrackMappingRepository;
     private final GrowthTrackCapsuleMappingRepository growthTrackCapsuleMappingRepository;
+    private final CapsuleAtomMappingRepository capsuleAtomMappingRepository;
     @Override
     public String assignLearnerToTalentRoute(RoadmapRequestDto roadmapRequestDto) {
 
@@ -85,11 +86,40 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
 
         // initialize progresses
         return capsules.stream()
-                .map(capsule -> LearnerCapsuleProgress.builder()
+                .map(capsule -> {
+
+                    LearnerCapsuleProgress learnerCapsuleProgress = LearnerCapsuleProgress.builder()
                         .learnerTrackProgress(learnerTrackProgress)
                         .skillCapsule(capsule)
                         .status(ProgressStatus.NOT_STARTED)
                         .progressPercentage(0)
+                        .build();
+
+                    // create atom progress immediately for this capsule
+                    List<LearnerAtomProgress> atomProgresses = createAtomProgresses(learnerCapsuleProgress, capsule);
+
+                    //map atom progress to the skill capsule progress
+                    learnerCapsuleProgress.setLearnerAtomProgresses(atomProgresses);
+
+                    return learnerCapsuleProgress;
+                }
+                )
+                .toList();
+
+    }
+
+    private List<LearnerAtomProgress> createAtomProgresses(LearnerCapsuleProgress learnerCapsuleProgress,
+                                                                 SkillCapsuleSnapshot capsule){
+        // fetch all the atoms belong to the capsule
+        List<SkillAtomSnapshot> atoms = capsuleAtomMappingRepository
+                .findAtomsByCapsuleId(capsule.getSkillCapsuleId());
+
+        // initialize progresses
+        return atoms.stream()
+                .map(atom -> LearnerAtomProgress.builder()
+                        .learnerCapsuleProgress(learnerCapsuleProgress)
+                        .skillAtom(atom)
+                        .status(ProgressStatus.NOT_STARTED)
                         .build()
                 )
                 .toList();

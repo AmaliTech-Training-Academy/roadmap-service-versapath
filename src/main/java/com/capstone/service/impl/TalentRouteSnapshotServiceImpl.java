@@ -1,17 +1,23 @@
 package com.capstone.service.impl;
 
+import com.capstone.dto.response.PaginatedResponseDto;
+import com.capstone.dto.response.TalentRouteResponseDto;
 import com.capstone.exception.*;
 import com.capstone.mapper.TalentRouteEventMapper;
+import com.capstone.mapper.TalentRouteMapper;
 import com.capstone.model.GrowthTrackSnapshot;
 import com.capstone.model.RouteTrackMapping;
 import com.capstone.model.TalentRouteSnapshot;
 import com.capstone.repository.TalentRouteSnapshotRepository;
 import com.capstone.service.GrowthTrackSnapshotService;
 import com.capstone.service.TalentRouteSnapshotService;
+import com.capstone.util.PaginationUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.common.event.TalentRouteEvent;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +32,7 @@ public class TalentRouteSnapshotServiceImpl implements TalentRouteSnapshotServic
 
     private final TalentRouteSnapshotRepository talentRouteSnapshotRepository;
     private final TalentRouteEventMapper talentRouteEventMapper;
+    private final TalentRouteMapper talentRouteMapper;
     private final GrowthTrackSnapshotService growthTrackSnapshotService;
 
     @Override
@@ -229,6 +236,90 @@ public class TalentRouteSnapshotServiceImpl implements TalentRouteSnapshotServic
     public Optional<TalentRouteSnapshot> findByTalentRouteIdWithTrackMappings(UUID talentRouteId) {
         log.debug("Finding route with track mappings by talentRouteId: {}", talentRouteId);
         return talentRouteSnapshotRepository.findByTalentRouteIdWithTrackMappings(talentRouteId);
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponseDto<TalentRouteSnapshot> findAll(Pageable pageable) {
+        log.debug("Finding all talent routes with pagination: page={}, size={}",
+            pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<TalentRouteSnapshot> pageData = talentRouteSnapshotRepository.findAll(pageable);
+        return PaginationUtil.toPaginatedResponse(pageData);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponseDto<TalentRouteSnapshot> findAllWithTrackMappings(Pageable pageable) {
+        log.debug("Finding all talent routes with track mappings: page={}, size={}",
+            pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<TalentRouteSnapshot> pageData = talentRouteSnapshotRepository.findAllWithTrackMappings(pageable);
+        return PaginationUtil.toPaginatedResponse(pageData);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponseDto<TalentRouteSnapshot> searchByRouteName(String routeName, Pageable pageable) {
+        log.debug("Searching talent routes by name '{}': page={}, size={}",
+            routeName, pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<TalentRouteSnapshot> pageData = talentRouteSnapshotRepository.findByRouteNameContainingIgnoreCase(routeName, pageable);
+        return PaginationUtil.toPaginatedResponse(pageData);
+    }
+
+    // ===== NEW CLEAN DTO-BASED METHODS =====
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponseDto<TalentRouteResponseDto> findAllBasic(Pageable pageable) {
+        log.debug("Finding all talent routes (basic) with pagination: page={}, size={}",
+            pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<TalentRouteSnapshot> pageData = talentRouteSnapshotRepository.findAll(pageable);
+        Page<TalentRouteResponseDto> dtoPage = pageData.map(talentRouteMapper::toBasicResponseDto);
+        return PaginationUtil.toPaginatedResponse(dtoPage);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponseDto<TalentRouteResponseDto> findAllWithTrackSummaries(Pageable pageable) {
+        log.debug("Finding all talent routes with track summaries: page={}, size={}",
+            pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<TalentRouteSnapshot> pageData = talentRouteSnapshotRepository.findAllWithTrackMappings(pageable);
+        Page<TalentRouteResponseDto> dtoPage = pageData.map(talentRouteMapper::toResponseDtoWithTracks);
+        return PaginationUtil.toPaginatedResponse(dtoPage);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponseDto<TalentRouteResponseDto> searchByRouteNameBasic(String routeName, Pageable pageable) {
+        log.debug("Searching talent routes (basic) by name '{}': page={}, size={}",
+            routeName, pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<TalentRouteSnapshot> pageData = talentRouteSnapshotRepository.findByRouteNameContainingIgnoreCase(routeName, pageable);
+        Page<TalentRouteResponseDto> dtoPage = pageData.map(talentRouteMapper::toBasicResponseDto);
+        return PaginationUtil.toPaginatedResponse(dtoPage);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<TalentRouteResponseDto> findByTalentRouteIdBasic(UUID talentRouteId) {
+        log.debug("Finding talent route (basic) by talentRouteId: {}", talentRouteId);
+
+        return talentRouteSnapshotRepository.findByTalentRouteId(talentRouteId)
+                .map(talentRouteMapper::toBasicResponseDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<TalentRouteResponseDto> findByTalentRouteIdWithTrackSummaries(UUID talentRouteId) {
+        log.debug("Finding talent route with track summaries by talentRouteId: {}", talentRouteId);
+
+        return talentRouteSnapshotRepository.findByTalentRouteIdWithTrackMappings(talentRouteId)
+                .map(talentRouteMapper::toResponseDtoWithTracks);
     }
 
     // Helper classes

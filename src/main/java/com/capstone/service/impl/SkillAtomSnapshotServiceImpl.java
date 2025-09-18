@@ -1,14 +1,20 @@
 package com.capstone.service.impl;
 
+import com.capstone.dto.response.PaginatedResponseDto;
+import com.capstone.dto.response.SkillAtomResponseDto;
 import com.capstone.exception.SkillAtomProcessingException;
 import com.capstone.mapper.SkillAtomEventMapper;
+import com.capstone.mapper.SkillAtomMapper;
 import com.capstone.model.SkillAtomSnapshot;
 import com.capstone.repository.SkillAtomSnapshotRepository;
 import com.capstone.service.SkillAtomSnapshotService;
+import com.capstone.util.PaginationUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.common.event.SkillAtomEvent;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +29,7 @@ public class SkillAtomSnapshotServiceImpl implements SkillAtomSnapshotService {
 
     private final SkillAtomSnapshotRepository skillAtomSnapshotRepository;
     private final SkillAtomEventMapper skillAtomEventMapper;
+    private final SkillAtomMapper skillAtomMapper;
 
     @Override
     public SkillAtomSnapshot processSkillAtomEvent(SkillAtomEvent event) {
@@ -95,5 +102,31 @@ public class SkillAtomSnapshotServiceImpl implements SkillAtomSnapshotService {
     public boolean existsBySkillAtomId(UUID skillAtomId) {
         log.debug("Checking if skill atom exists by skillAtomId: {}", skillAtomId);
         return skillAtomSnapshotRepository.existsBySkillAtomId(skillAtomId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponseDto<SkillAtomResponseDto> findAllBasic(Pageable pageable) {
+        log.debug("Finding all skill atoms with basic info, page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
+        Page<SkillAtomSnapshot> pageData = skillAtomSnapshotRepository.findAll(pageable);
+        Page<SkillAtomResponseDto> dtoPage = pageData.map(skillAtomMapper::toResponseDto);
+        return PaginationUtil.toPaginatedResponse(dtoPage);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponseDto<SkillAtomResponseDto> searchByNameBasic(String name, Pageable pageable) {
+        log.debug("Searching skill atoms by name: '{}', page: {}, size: {}", name, pageable.getPageNumber(), pageable.getPageSize());
+        Page<SkillAtomSnapshot> pageData = skillAtomSnapshotRepository.findByNameContainingIgnoreCase(name, pageable);
+        Page<SkillAtomResponseDto> dtoPage = pageData.map(skillAtomMapper::toResponseDto);
+        return PaginationUtil.toPaginatedResponse(dtoPage);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<SkillAtomResponseDto> findBySkillAtomIdBasic(UUID skillAtomId) {
+        log.debug("Finding skill atom by ID with basic info: {}", skillAtomId);
+        return skillAtomSnapshotRepository.findBySkillAtomId(skillAtomId)
+                .map(skillAtomMapper::toResponseDto);
     }
 }

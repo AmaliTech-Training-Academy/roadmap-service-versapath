@@ -1,17 +1,23 @@
 package com.capstone.service.impl;
 
+import com.capstone.dto.response.GrowthTrackResponseDto;
+import com.capstone.dto.response.PaginatedResponseDto;
 import com.capstone.exception.*;
 import com.capstone.mapper.GrowthTrackEventMapper;
+import com.capstone.mapper.GrowthTrackMapper;
 import com.capstone.model.GrowthTrackSnapshot;
 import com.capstone.model.SkillCapsuleSnapshot;
 import com.capstone.model.TrackCapsuleMapping;
 import com.capstone.repository.GrowthTrackSnapshotRepository;
 import com.capstone.service.GrowthTrackSnapshotService;
 import com.capstone.service.SkillCapsuleSnapshotService;
+import com.capstone.util.PaginationUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.common.event.GrowthTrackEvent;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +32,7 @@ public class GrowthTrackSnapshotServiceImpl implements GrowthTrackSnapshotServic
 
     private final GrowthTrackSnapshotRepository growthTrackSnapshotRepository;
     private final GrowthTrackEventMapper growthTrackEventMapper;
+    private final GrowthTrackMapper growthTrackMapper;
     private final SkillCapsuleSnapshotService skillCapsuleSnapshotService;
 
     @Override
@@ -230,6 +237,49 @@ public class GrowthTrackSnapshotServiceImpl implements GrowthTrackSnapshotServic
     public Optional<GrowthTrackSnapshot> findByGrowthTrackIdWithCapsuleMappings(UUID growthTrackId) {
         log.debug("Finding track with capsule mappings by growthTrackId: {}", growthTrackId);
         return growthTrackSnapshotRepository.findByGrowthTrackIdWithCapsuleMappings(growthTrackId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponseDto<GrowthTrackResponseDto> findAllBasic(Pageable pageable) {
+        log.debug("Finding all growth tracks with basic info, page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
+        Page<GrowthTrackSnapshot> pageData = growthTrackSnapshotRepository.findAll(pageable);
+        Page<GrowthTrackResponseDto> dtoPage = pageData.map(growthTrackMapper::toBasicResponseDto);
+        return PaginationUtil.toPaginatedResponse(dtoPage);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponseDto<GrowthTrackResponseDto> findAllWithCapsuleSummaries(Pageable pageable) {
+        log.debug("Finding all growth tracks with capsule summaries, page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
+        Page<GrowthTrackSnapshot> pageData = growthTrackSnapshotRepository.findAllWithCapsuleMappings(pageable);
+        Page<GrowthTrackResponseDto> dtoPage = pageData.map(growthTrackMapper::toResponseDtoWithCapsules);
+        return PaginationUtil.toPaginatedResponse(dtoPage);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponseDto<GrowthTrackResponseDto> searchByTrackNameBasic(String trackName, Pageable pageable) {
+        log.debug("Searching growth tracks by name: '{}', page: {}, size: {}", trackName, pageable.getPageNumber(), pageable.getPageSize());
+        Page<GrowthTrackSnapshot> pageData = growthTrackSnapshotRepository.findByTrackNameContainingIgnoreCase(trackName, pageable);
+        Page<GrowthTrackResponseDto> dtoPage = pageData.map(growthTrackMapper::toBasicResponseDto);
+        return PaginationUtil.toPaginatedResponse(dtoPage);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<GrowthTrackResponseDto> findByGrowthTrackIdBasic(UUID growthTrackId) {
+        log.debug("Finding growth track by ID with basic info: {}", growthTrackId);
+        return growthTrackSnapshotRepository.findByGrowthTrackId(growthTrackId)
+                .map(growthTrackMapper::toBasicResponseDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<GrowthTrackResponseDto> findByGrowthTrackIdWithCapsuleSummaries(UUID growthTrackId) {
+        log.debug("Finding growth track by ID with capsule summaries: {}", growthTrackId);
+        return growthTrackSnapshotRepository.findByGrowthTrackIdWithCapsuleMappings(growthTrackId)
+                .map(growthTrackMapper::toResponseDtoWithCapsules);
     }
 
     // Helper classes

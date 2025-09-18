@@ -1,17 +1,23 @@
 package com.capstone.service.impl;
 
+import com.capstone.dto.response.PaginatedResponseDto;
+import com.capstone.dto.response.SkillCapsuleResponseDto;
 import com.capstone.exception.*;
 import com.capstone.mapper.SkillCapsuleEventMapper;
+import com.capstone.mapper.SkillCapsuleMapper;
 import com.capstone.model.CapsuleAtomMapping;
 import com.capstone.model.SkillAtomSnapshot;
 import com.capstone.model.SkillCapsuleSnapshot;
 import com.capstone.repository.SkillCapsuleSnapshotRepository;
 import com.capstone.service.SkillAtomSnapshotService;
 import com.capstone.service.SkillCapsuleSnapshotService;
+import com.capstone.util.PaginationUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.common.event.SkillCapsuleEvent;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +32,7 @@ public class SkillCapsuleSnapshotServiceImpl implements SkillCapsuleSnapshotServ
 
     private final SkillCapsuleSnapshotRepository skillCapsuleSnapshotRepository;
     private final SkillCapsuleEventMapper skillCapsuleEventMapper;
+    private final SkillCapsuleMapper skillCapsuleMapper;
     private final SkillAtomSnapshotService skillAtomSnapshotService;
 
     @Override
@@ -238,6 +245,58 @@ public class SkillCapsuleSnapshotServiceImpl implements SkillCapsuleSnapshotServ
     public Optional<SkillCapsuleSnapshot> findBySkillCapsuleIdWithAtomMappings(UUID skillCapsuleId) {
         log.debug("Finding capsule with atom mappings by skillCapsuleId: {}", skillCapsuleId);
         return skillCapsuleSnapshotRepository.findBySkillCapsuleIdWithAtomMappings(skillCapsuleId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponseDto<SkillCapsuleResponseDto> findAllBasic(Pageable pageable) {
+        log.debug("Finding all skill capsules with basic info, page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
+        Page<SkillCapsuleSnapshot> pageData = skillCapsuleSnapshotRepository.findAll(pageable);
+        Page<SkillCapsuleResponseDto> dtoPage = pageData.map(skillCapsuleMapper::toBasicResponseDto);
+        return PaginationUtil.toPaginatedResponse(dtoPage);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponseDto<SkillCapsuleResponseDto> findAllWithAtomSummaries(Pageable pageable) {
+        log.debug("Finding all skill capsules with atom summaries, page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
+        Page<SkillCapsuleSnapshot> pageData = skillCapsuleSnapshotRepository.findAllWithAtomMappings(pageable);
+        Page<SkillCapsuleResponseDto> dtoPage = pageData.map(skillCapsuleMapper::toResponseDtoWithAtoms);
+        return PaginationUtil.toPaginatedResponse(dtoPage);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponseDto<SkillCapsuleResponseDto> searchByCapsuleNameBasic(String capsuleName, Pageable pageable) {
+        log.debug("Searching skill capsules by name: '{}', page: {}, size: {}", capsuleName, pageable.getPageNumber(), pageable.getPageSize());
+        Page<SkillCapsuleSnapshot> pageData = skillCapsuleSnapshotRepository.findByCapsuleNameContainingIgnoreCase(capsuleName, pageable);
+        Page<SkillCapsuleResponseDto> dtoPage = pageData.map(skillCapsuleMapper::toBasicResponseDto);
+        return PaginationUtil.toPaginatedResponse(dtoPage);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponseDto<SkillCapsuleResponseDto> findByDifficultyLevelBasic(String difficultyLevel, Pageable pageable) {
+        log.debug("Finding skill capsules by difficulty level: '{}', page: {}, size: {}", difficultyLevel, pageable.getPageNumber(), pageable.getPageSize());
+        Page<SkillCapsuleSnapshot> pageData = skillCapsuleSnapshotRepository.findByDifficultyLevel(difficultyLevel, pageable);
+        Page<SkillCapsuleResponseDto> dtoPage = pageData.map(skillCapsuleMapper::toBasicResponseDto);
+        return PaginationUtil.toPaginatedResponse(dtoPage);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<SkillCapsuleResponseDto> findBySkillCapsuleIdBasic(UUID skillCapsuleId) {
+        log.debug("Finding skill capsule by ID with basic info: {}", skillCapsuleId);
+        return skillCapsuleSnapshotRepository.findBySkillCapsuleId(skillCapsuleId)
+                .map(skillCapsuleMapper::toBasicResponseDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<SkillCapsuleResponseDto> findBySkillCapsuleIdWithAtomSummaries(UUID skillCapsuleId) {
+        log.debug("Finding skill capsule by ID with atom summaries: {}", skillCapsuleId);
+        return skillCapsuleSnapshotRepository.findBySkillCapsuleIdWithAtomMappings(skillCapsuleId)
+                .map(skillCapsuleMapper::toResponseDtoWithAtoms);
     }
 
     // Helper classes

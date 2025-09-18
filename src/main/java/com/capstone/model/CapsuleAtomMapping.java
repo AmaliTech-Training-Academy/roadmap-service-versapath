@@ -1,5 +1,6 @@
 package com.capstone.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Min;
@@ -49,6 +50,7 @@ public class CapsuleAtomMapping {
             nullable = false,
             foreignKey = @ForeignKey(name = "fk_capsule_mapping_capsule")
     )
+    @JsonIgnore
     private SkillCapsuleSnapshot skillCapsule;
 
     // Many-to-One relationship with SkillAtomSnapshot

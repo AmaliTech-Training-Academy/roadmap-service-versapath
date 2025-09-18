@@ -1,5 +1,6 @@
 package com.capstone.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Min;
@@ -48,6 +49,7 @@ public class TrackCapsuleMapping {
             nullable = false,
             foreignKey = @ForeignKey(name = "fk_track_mapping_track")
     )
+    @JsonIgnore
     private GrowthTrackSnapshot growthTrack;
 
     @NotNull(message = "Skill capsule is required")

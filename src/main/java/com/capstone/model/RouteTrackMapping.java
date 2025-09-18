@@ -1,8 +1,9 @@
 package com.capstone.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Min;
 import lombok.*;
 import org.hibernate.annotations.UuidGenerator;
 
@@ -18,14 +19,15 @@ import java.util.UUID;
                         columnNames = {"talent_route_id", "growth_track_id"}
                 ),
                 @UniqueConstraint(
-                        name = "uk_route_track_sequence",
+
+                        name = "uk_route_sequence",
                         columnNames = {"talent_route_id", "sequence_order"}
                 )
         },
         indexes = {
                 @Index(name = "idx_route_id", columnList = "talent_route_id"),
-                @Index(name = "idx_track_id", columnList = "growth_track_id"),
-                @Index(name = "idx_route_track_sequence", columnList = "talent_route_id, sequence_order")
+                @Index(name = "idx_track_id_route", columnList = "growth_track_id"),
+                @Index(name = "idx_route_sequence", columnList = "talent_route_id, sequence_order")
         }
 )
 @Data
@@ -48,6 +50,7 @@ public class RouteTrackMapping {
             nullable = false,
             foreignKey = @ForeignKey(name = "fk_route_mapping_route")
     )
+    @JsonIgnore
     private TalentRouteSnapshot talentRoute;
 
     @NotNull(message = "Growth track is required")

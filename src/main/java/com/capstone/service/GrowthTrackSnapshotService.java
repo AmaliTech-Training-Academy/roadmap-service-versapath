@@ -1,7 +1,10 @@
 package com.capstone.service;
 
+import com.capstone.dto.response.GrowthTrackResponseDto;
+import com.capstone.dto.response.PaginatedResponseDto;
 import com.capstone.model.GrowthTrackSnapshot;
 import org.common.event.GrowthTrackEvent;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Map;
@@ -16,4 +19,11 @@ public interface GrowthTrackSnapshotService {
     Optional<GrowthTrackSnapshot> findByGrowthTrackId(UUID growthTrackId);
     boolean existsByGrowthTrackId(UUID growthTrackId);
     Optional<GrowthTrackSnapshot> findByGrowthTrackIdWithCapsuleMappings(UUID growthTrackId);
+
+
+    PaginatedResponseDto<GrowthTrackResponseDto> findAllBasic(Pageable pageable);
+    PaginatedResponseDto<GrowthTrackResponseDto> findAllWithCapsuleSummaries(Pageable pageable);
+    PaginatedResponseDto<GrowthTrackResponseDto> searchByTrackNameBasic(String trackName, Pageable pageable);
+    Optional<GrowthTrackResponseDto> findByGrowthTrackIdBasic(UUID growthTrackId);
+    Optional<GrowthTrackResponseDto> findByGrowthTrackIdWithCapsuleSummaries(UUID growthTrackId);
 }

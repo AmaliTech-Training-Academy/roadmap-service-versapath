@@ -1,7 +1,7 @@
 package com.capstone.service;
 
-import java.util.UUID;
+import com.capstone.dto.route.RoadmapRequestDto;
 
 public interface LearnerRoadmapService {
-    String assignLearnerToTalentRoute(UUID learnerId, UUID talentRouteId);
+    String assignLearnerToTalentRoute(RoadmapRequestDto roadmapRequestDto);
 }

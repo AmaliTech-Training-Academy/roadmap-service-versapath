@@ -15,6 +15,8 @@ import com.capstone.util.PaginationUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.common.event.TalentRouteEvent;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -36,6 +38,7 @@ public class TalentRouteSnapshotServiceImpl implements TalentRouteSnapshotServic
     private final GrowthTrackSnapshotService growthTrackSnapshotService;
 
     @Override
+    @CacheEvict(value = {"talent-routes", "talent-routes-with-tracks", "talent-routes-search", "talent-route-single"}, allEntries = true)
     public TalentRouteSnapshot processTalentRouteEvent(TalentRouteEvent event) {
         log.info("Processing talent route event for routeId: {}", event.getId());
 
@@ -219,60 +222,7 @@ public class TalentRouteSnapshotServiceImpl implements TalentRouteSnapshotServic
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<TalentRouteSnapshot> findByTalentRouteId(UUID talentRouteId) {
-        log.debug("Finding route by talentRouteId: {}", talentRouteId);
-        return talentRouteSnapshotRepository.findByTalentRouteId(talentRouteId);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public boolean existsByTalentRouteId(UUID talentRouteId) {
-        log.debug("Checking if route exists by talentRouteId: {}", talentRouteId);
-        return talentRouteSnapshotRepository.existsByTalentRouteId(talentRouteId);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Optional<TalentRouteSnapshot> findByTalentRouteIdWithTrackMappings(UUID talentRouteId) {
-        log.debug("Finding route with track mappings by talentRouteId: {}", talentRouteId);
-        return talentRouteSnapshotRepository.findByTalentRouteIdWithTrackMappings(talentRouteId);
-    }
-
-
-    @Override
-    @Transactional(readOnly = true)
-    public PaginatedResponseDto<TalentRouteSnapshot> findAll(Pageable pageable) {
-        log.debug("Finding all talent routes with pagination: page={}, size={}",
-            pageable.getPageNumber(), pageable.getPageSize());
-
-        Page<TalentRouteSnapshot> pageData = talentRouteSnapshotRepository.findAll(pageable);
-        return PaginationUtil.toPaginatedResponse(pageData);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public PaginatedResponseDto<TalentRouteSnapshot> findAllWithTrackMappings(Pageable pageable) {
-        log.debug("Finding all talent routes with track mappings: page={}, size={}",
-            pageable.getPageNumber(), pageable.getPageSize());
-
-        Page<TalentRouteSnapshot> pageData = talentRouteSnapshotRepository.findAllWithTrackMappings(pageable);
-        return PaginationUtil.toPaginatedResponse(pageData);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public PaginatedResponseDto<TalentRouteSnapshot> searchByRouteName(String routeName, Pageable pageable) {
-        log.debug("Searching talent routes by name '{}': page={}, size={}",
-            routeName, pageable.getPageNumber(), pageable.getPageSize());
-
-        Page<TalentRouteSnapshot> pageData = talentRouteSnapshotRepository.findByRouteNameContainingIgnoreCase(routeName, pageable);
-        return PaginationUtil.toPaginatedResponse(pageData);
-    }
-
-    // ===== NEW CLEAN DTO-BASED METHODS =====
-
-    @Override
-    @Transactional(readOnly = true)
+    @Cacheable(value = "talent-routes", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public PaginatedResponseDto<TalentRouteResponseDto> findAllBasic(Pageable pageable) {
         log.debug("Finding all talent routes (basic) with pagination: page={}, size={}",
             pageable.getPageNumber(), pageable.getPageSize());
@@ -284,6 +234,7 @@ public class TalentRouteSnapshotServiceImpl implements TalentRouteSnapshotServic
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "talent-routes-with-tracks", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public PaginatedResponseDto<TalentRouteResponseDto> findAllWithTrackSummaries(Pageable pageable) {
         log.debug("Finding all talent routes with track summaries: page={}, size={}",
             pageable.getPageNumber(), pageable.getPageSize());
@@ -295,6 +246,7 @@ public class TalentRouteSnapshotServiceImpl implements TalentRouteSnapshotServic
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "talent-routes-search", key = "#routeName + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public PaginatedResponseDto<TalentRouteResponseDto> searchByRouteNameBasic(String routeName, Pageable pageable) {
         log.debug("Searching talent routes (basic) by name '{}': page={}, size={}",
             routeName, pageable.getPageNumber(), pageable.getPageSize());
@@ -306,6 +258,7 @@ public class TalentRouteSnapshotServiceImpl implements TalentRouteSnapshotServic
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "talent-route-single", key = "#talentRouteId")
     public Optional<TalentRouteResponseDto> findByTalentRouteIdBasic(UUID talentRouteId) {
         log.debug("Finding talent route (basic) by talentRouteId: {}", talentRouteId);
 
@@ -315,6 +268,7 @@ public class TalentRouteSnapshotServiceImpl implements TalentRouteSnapshotServic
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "talent-route-single", key = "#talentRouteId + '-with-tracks'")
     public Optional<TalentRouteResponseDto> findByTalentRouteIdWithTrackSummaries(UUID talentRouteId) {
         log.debug("Finding talent route with track summaries by talentRouteId: {}", talentRouteId);
 

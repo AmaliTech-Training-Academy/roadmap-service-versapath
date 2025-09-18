@@ -1,5 +1,6 @@
 package com.capstone.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Min;
@@ -47,6 +48,7 @@ public class RouteTrackMapping {
             nullable = false,
             foreignKey = @ForeignKey(name = "fk_route_mapping_route")
     )
+    @JsonIgnore
     private TalentRouteSnapshot talentRoute;
 
     @NotNull(message = "Growth track is required")

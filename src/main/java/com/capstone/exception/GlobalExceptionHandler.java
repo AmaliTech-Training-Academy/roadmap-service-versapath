@@ -216,4 +216,11 @@ public class GlobalExceptionHandler {
                 .body(ApiResponseDto.error(ex.getMessage(), "Roadmap exists"));
     }
 
+    @ExceptionHandler(ProgressNotFoundException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleProgressNotFoundException(ProgressNotFoundException ex) {
+        log.error("Progress not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponseDto.error(ex.getMessage(), "Progress not found"));
+    }
+
 }

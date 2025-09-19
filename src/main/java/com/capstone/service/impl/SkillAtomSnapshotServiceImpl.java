@@ -12,6 +12,8 @@ import com.capstone.util.PaginationUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.common.event.SkillAtomEvent;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +34,7 @@ public class SkillAtomSnapshotServiceImpl implements SkillAtomSnapshotService {
     private final SkillAtomMapper skillAtomMapper;
 
     @Override
+    @CacheEvict(value = {"skill-atoms", "skill-atoms-search", "skill-atom-single"}, allEntries = true)
     public SkillAtomSnapshot processSkillAtomEvent(SkillAtomEvent event) {
         log.info("Processing skill atom event for skillAtomId: {}", event.getId());
 
@@ -106,6 +109,7 @@ public class SkillAtomSnapshotServiceImpl implements SkillAtomSnapshotService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "skill-atoms", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public PaginatedResponseDto<SkillAtomResponseDto> findAllBasic(Pageable pageable) {
         log.debug("Finding all skill atoms with basic info, page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
         Page<SkillAtomSnapshot> pageData = skillAtomSnapshotRepository.findAll(pageable);
@@ -115,6 +119,7 @@ public class SkillAtomSnapshotServiceImpl implements SkillAtomSnapshotService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "skill-atoms-search", key = "#name + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public PaginatedResponseDto<SkillAtomResponseDto> searchByNameBasic(String name, Pageable pageable) {
         log.debug("Searching skill atoms by name: '{}', page: {}, size: {}", name, pageable.getPageNumber(), pageable.getPageSize());
         Page<SkillAtomSnapshot> pageData = skillAtomSnapshotRepository.findByNameContainingIgnoreCase(name, pageable);
@@ -124,6 +129,7 @@ public class SkillAtomSnapshotServiceImpl implements SkillAtomSnapshotService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "skill-atom-single", key = "#skillAtomId")
     public Optional<SkillAtomResponseDto> findBySkillAtomIdBasic(UUID skillAtomId) {
         log.debug("Finding skill atom by ID with basic info: {}", skillAtomId);
         return skillAtomSnapshotRepository.findBySkillAtomId(skillAtomId)

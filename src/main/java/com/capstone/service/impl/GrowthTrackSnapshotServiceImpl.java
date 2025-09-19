@@ -15,6 +15,8 @@ import com.capstone.util.PaginationUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.common.event.GrowthTrackEvent;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -36,6 +38,7 @@ public class GrowthTrackSnapshotServiceImpl implements GrowthTrackSnapshotServic
     private final SkillCapsuleSnapshotService skillCapsuleSnapshotService;
 
     @Override
+    @CacheEvict(value = {"growth-tracks", "growth-tracks-with-capsules", "growth-tracks-search", "growth-track-single"}, allEntries = true)
     public GrowthTrackSnapshot processGrowthTrackEvent(GrowthTrackEvent event) {
         log.info("Processing growth track event for trackId: {}", event.getId());
 
@@ -241,6 +244,7 @@ public class GrowthTrackSnapshotServiceImpl implements GrowthTrackSnapshotServic
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "growth-tracks", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public PaginatedResponseDto<GrowthTrackResponseDto> findAllBasic(Pageable pageable) {
         log.debug("Finding all growth tracks with basic info, page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
         Page<GrowthTrackSnapshot> pageData = growthTrackSnapshotRepository.findAll(pageable);
@@ -250,6 +254,7 @@ public class GrowthTrackSnapshotServiceImpl implements GrowthTrackSnapshotServic
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "growth-tracks-with-capsules", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public PaginatedResponseDto<GrowthTrackResponseDto> findAllWithCapsuleSummaries(Pageable pageable) {
         log.debug("Finding all growth tracks with capsule summaries, page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
         Page<GrowthTrackSnapshot> pageData = growthTrackSnapshotRepository.findAllWithCapsuleMappings(pageable);
@@ -259,6 +264,7 @@ public class GrowthTrackSnapshotServiceImpl implements GrowthTrackSnapshotServic
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "growth-tracks-search", key = "#trackName + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public PaginatedResponseDto<GrowthTrackResponseDto> searchByTrackNameBasic(String trackName, Pageable pageable) {
         log.debug("Searching growth tracks by name: '{}', page: {}, size: {}", trackName, pageable.getPageNumber(), pageable.getPageSize());
         Page<GrowthTrackSnapshot> pageData = growthTrackSnapshotRepository.findByTrackNameContainingIgnoreCase(trackName, pageable);
@@ -268,6 +274,7 @@ public class GrowthTrackSnapshotServiceImpl implements GrowthTrackSnapshotServic
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "growth-track-single", key = "#growthTrackId")
     public Optional<GrowthTrackResponseDto> findByGrowthTrackIdBasic(UUID growthTrackId) {
         log.debug("Finding growth track by ID with basic info: {}", growthTrackId);
         return growthTrackSnapshotRepository.findByGrowthTrackId(growthTrackId)
@@ -276,6 +283,7 @@ public class GrowthTrackSnapshotServiceImpl implements GrowthTrackSnapshotServic
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "growth-track-single", key = "#growthTrackId + '-with-capsules'")
     public Optional<GrowthTrackResponseDto> findByGrowthTrackIdWithCapsuleSummaries(UUID growthTrackId) {
         log.debug("Finding growth track by ID with capsule summaries: {}", growthTrackId);
         return growthTrackSnapshotRepository.findByGrowthTrackIdWithCapsuleMappings(growthTrackId)

@@ -19,9 +19,11 @@ public interface LearnerAtomProgressRepository extends JpaRepository<LearnerAtom
         JOIN lcp.learnerTrackProgress ltp
         JOIN ltp.learnerRoadmap lr
         WHERE lr.userId = :learnerId
+          AND ltp.growthTrack.growthTrackId = :trackId
           AND lap.skillAtom.skillAtomId = :atomId
     """)
     Optional<LearnerAtomProgress> findByLearnerIdAndAtomId(@Param("learnerId") UUID learnerId,
-                                                           @Param("atomId") UUID atomId);
+                                                           @Param("atomId") UUID atomId,
+                                                           @Param("trackId") UUID trackId);
 
 }

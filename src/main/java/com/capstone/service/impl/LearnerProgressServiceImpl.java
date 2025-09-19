@@ -19,7 +19,7 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
     @Override
     public String startAtomProgress(StartAtomProgressRequestDto startAtomProgressRequestDto) {
         LearnerAtomProgress atomProgress = learnerAtomProgressRepository.findByLearnerIdAndAtomId(startAtomProgressRequestDto.getLearnerId(),
-                startAtomProgressRequestDto.getAtomId())
+                startAtomProgressRequestDto.getAtomId(), startAtomProgressRequestDto.getTrackId())
                 .orElseThrow(() -> new ProgressNotFoundException("Atom progress not found for this learner"));
 
         if(atomProgress.getStatus().equals(ProgressStatus.NOT_STARTED)){
@@ -28,6 +28,8 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
             atomProgress.setStatus(ProgressStatus.IN_PROGRESS);
         }
 
-        return null;
+        learnerAtomProgressRepository.save(atomProgress);
+
+        return "Learner has started";
     }
 }

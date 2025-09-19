@@ -1,6 +1,6 @@
 package com.capstone.service.impl;
 
-import com.capstone.dto.route.RoadmapRequestDto;
+import com.capstone.dto.roadmap.RoadmapRequestDto;
 import com.capstone.exception.RoadmapExistException;
 import com.capstone.exception.TalentRouteNotFoundException;
 import com.capstone.exception.UserNotFoundException;

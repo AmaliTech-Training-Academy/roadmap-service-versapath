@@ -202,4 +202,18 @@ public class GlobalExceptionHandler {
                 .body(ApiResponseDto.error(ex.getMessage(), "Route-track mapping failed"));
     }
 
+    @ExceptionHandler(RoadmapNotFoundException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleRoadmapNotFoundException(RoadmapNotFoundException ex) {
+        log.error("Roadmap not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponseDto.error(ex.getMessage(), "Roadmap not found"));
+    }
+
+    @ExceptionHandler(RoadmapExistException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleRoadmapExistException(RoadmapExistException ex) {
+        log.error("Roadmap exists: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponseDto.error(ex.getMessage(), "Roadmap exists"));
+    }
+
 }

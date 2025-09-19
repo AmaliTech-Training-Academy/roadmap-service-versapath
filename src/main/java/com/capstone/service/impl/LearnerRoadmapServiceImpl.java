@@ -1,6 +1,7 @@
 package com.capstone.service.impl;
 
 import com.capstone.dto.route.RoadmapRequestDto;
+import com.capstone.exception.RoadmapExistException;
 import com.capstone.exception.TalentRouteNotFoundException;
 import com.capstone.exception.UserNotFoundException;
 import com.capstone.model.*;
@@ -46,6 +47,10 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
 
         if(userSnapshotRepository.findByUserId(learnerId).isEmpty()){
             throw new UserNotFoundException("A learner provided doesn't exist");
+        }
+
+        if(learnerRoadmapRepository.findByUserIdAndTalentRouteId(learnerId, talentRouteId).isPresent()){
+            throw new RoadmapExistException("You are already enrolled in this roadmap");
         }
 
         return LearnerRoadmap.builder()

@@ -24,9 +24,9 @@ import java.util.UUID;
                 )
         },
         indexes = {
-                @Index(name = "idx_track_id", columnList = "growth_track_id"),
-                @Index(name = "idx_capsule_id", columnList = "skill_capsule_id"),
-                @Index(name = "idx_track_sequence", columnList = "growth_track_id, sequence_order")
+                @Index(name = "idx_track_mapping_track_id", columnList = "growth_track_id"),
+                @Index(name = "idx_track_mapping_capsule_id", columnList = "skill_capsule_id"),
+                @Index(name = "idx_track_mapping_sequence", columnList = "growth_track_id, sequence_order")
         }
 )
 @Data

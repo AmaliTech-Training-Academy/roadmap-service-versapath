@@ -1,6 +1,6 @@
 package com.capstone.controller;
 
-import com.capstone.dto.route.RoadmapRequestDto;
+import com.capstone.dto.roadmap.RoadmapRequestDto;
 import com.capstone.service.LearnerRoadmapService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

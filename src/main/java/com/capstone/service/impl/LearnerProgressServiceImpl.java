@@ -5,6 +5,7 @@ import com.capstone.exception.ProgressExistException;
 import com.capstone.exception.ProgressNotFoundException;
 import com.capstone.model.*;
 import com.capstone.repository.LearnerAtomProgressRepository;
+import com.capstone.repository.LearnerRoadmapRepository;
 import com.capstone.service.LearnerProgressService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LearnerProgressServiceImpl implements LearnerProgressService {
     private final LearnerAtomProgressRepository learnerAtomProgressRepository;
+    private final LearnerRoadmapRepository learnerRoadmapRepository;
 
     @Transactional
     @Override
@@ -75,10 +77,13 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
         atomProgress.setCompletedAt(LocalDateTime.now());
         atomProgress.setCompleted(true);
 
+        learnerAtomProgressRepository.save(atomProgress); //save atom progress
+
         LearnerCapsuleProgress capsuleProgress = calculateCapsuleProgress(atomProgress);
         LearnerTrackProgress trackProgress = calculateTrackProgress(capsuleProgress);
+        LearnerRoadmap learnerRoadmap = calculateRoadmap(trackProgress);
 
-        learnerAtomProgressRepository.save(atomProgress); //save atom progress
+        learnerRoadmapRepository.save(learnerRoadmap); // save roadmap progress
 
         return "Learner progress calculated";
     }
@@ -117,6 +122,21 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
         return trackProgress;
     }
 
+    private LearnerRoadmap calculateRoadmap(LearnerTrackProgress trackProgress){
+        LearnerRoadmap learnerRoadmap = trackProgress.getLearnerRoadmap();
+        List<LearnerTrackProgress> trackProgressList = learnerRoadmap.getLearnerTrackProgresses();
 
+        // get the sum of growth track percentages
+        long sumOfGrowthTracksPercentage = trackProgressList.stream()
+                .map(LearnerTrackProgress::getProgressPercentage)
+                .reduce(0, Integer::sum);
+
+        // calculate percentage
+        int learnerRoadmapPercentage = trackProgressList.isEmpty() ? 0 : (int)(sumOfGrowthTracksPercentage/trackProgressList.size());
+
+        learnerRoadmap.setOverallProgressPercentage(learnerRoadmapPercentage);
+
+        return learnerRoadmap;
+    }
 
 }

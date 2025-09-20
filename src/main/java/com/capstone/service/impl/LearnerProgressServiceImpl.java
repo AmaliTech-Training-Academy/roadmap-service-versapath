@@ -1,6 +1,7 @@
 package com.capstone.service.impl;
 
 import com.capstone.dto.roadmap.StartAtomProgressRequestDto;
+import com.capstone.exception.ProgressExistException;
 import com.capstone.exception.ProgressNotFoundException;
 import com.capstone.model.LearnerAtomProgress;
 import com.capstone.model.ProgressStatus;
@@ -26,6 +27,8 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
             atomProgress.setStartedAt(LocalDateTime.now());
             atomProgress.setUpdatedAt(LocalDateTime.now());
             atomProgress.setStatus(ProgressStatus.IN_PROGRESS);
+        }else{
+            throw new ProgressExistException("You have already started your roadmap");
         }
 
         learnerAtomProgressRepository.save(atomProgress);

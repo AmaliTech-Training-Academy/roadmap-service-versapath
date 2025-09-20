@@ -223,4 +223,11 @@ public class GlobalExceptionHandler {
                 .body(ApiResponseDto.error(ex.getMessage(), "Progress not found"));
     }
 
+    @ExceptionHandler(ProgressExistException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleProgressExistException(ProgressExistException ex) {
+        log.error("Progress exist: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponseDto.error(ex.getMessage(), "Progress exist"));
+    }
+
 }

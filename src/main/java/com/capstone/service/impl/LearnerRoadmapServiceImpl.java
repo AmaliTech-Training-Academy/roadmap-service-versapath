@@ -9,6 +9,7 @@ import com.capstone.repository.*;
 import com.capstone.service.LearnerRoadmapService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -22,6 +23,8 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
     private final RouteTrackMappingRepository routeTrackMappingRepository;
     private final GrowthTrackCapsuleMappingRepository growthTrackCapsuleMappingRepository;
     private final CapsuleAtomMappingRepository capsuleAtomMappingRepository;
+
+    @Transactional
     @Override
     public String assignLearnerToTalentRoute(RoadmapRequestDto roadmapRequestDto) {
 

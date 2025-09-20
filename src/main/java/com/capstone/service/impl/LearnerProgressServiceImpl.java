@@ -185,6 +185,38 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
 
                 existingTracks.put(growthTrackId, learnerGrowthTrackProgress); // update learnerTrackProgress
             }
+            // add non-existing capsules to the growth track progress
+            addNewCapsulesToGrowthTrackProgress(learnerGrowthTrackProgress, growthTrackId);
+
+        }
+    }
+
+    private void addNewCapsulesToGrowthTrackProgress(LearnerTrackProgress learnerGrowthTrackProgress, UUID growthTrackId){
+        //find all the capsule in the growth track(new one + existing in the growth track progress)
+        List<SkillCapsuleSnapshot> allCapsules =
+                growthTrackCapsuleMappingRepository.findCapsulesByGrowthTrackId(growthTrackId);
+
+        // find the existing capsules in the growth track progress
+        Map<UUID, LearnerCapsuleProgress> existingCapsules = learnerGrowthTrackProgress.getLearnerCapsuleProgresses().stream()
+                .collect(Collectors.toMap(cp->cp.getSkillCapsule().getSkillCapsuleId(), cp->cp));
+
+        for(SkillCapsuleSnapshot capsule: allCapsules){
+            UUID capsuleId = capsule.getSkillCapsuleId();
+            LearnerCapsuleProgress learnerCapsuleProgress = existingCapsules.get(capsuleId);
+
+            if(learnerCapsuleProgress == null){ // add only new the ones aren't in the growth track progress
+                learnerCapsuleProgress = LearnerCapsuleProgress.builder()
+                        .learnerTrackProgress(learnerGrowthTrackProgress)
+                        .skillCapsule(capsule)
+                        .status(ProgressStatus.NOT_STARTED)
+                        .progressPercentage(0)
+                        .build();
+
+                // attach the learner capsule progress to growth track progress
+                learnerGrowthTrackProgress.getLearnerCapsuleProgresses().add(learnerCapsuleProgress);
+
+                existingCapsules.put(capsuleId, learnerCapsuleProgress); // update learnerCapsule progress
+            }
 
         }
     }

@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("roadmap")
+@RequestMapping("/api/v1/roadmap/")
 @Tag(name = "Roadmap Controller", description = "Manage all roadmap's api")
 public class RoadmapController {
     private final LearnerRoadmapService learnerRoadmapService;

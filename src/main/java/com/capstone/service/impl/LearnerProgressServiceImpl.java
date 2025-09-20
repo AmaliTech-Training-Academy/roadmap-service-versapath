@@ -6,10 +6,7 @@ import com.capstone.exception.ProgressExistException;
 import com.capstone.exception.ProgressNotFoundException;
 import com.capstone.exception.TalentRouteNotFoundException;
 import com.capstone.model.*;
-import com.capstone.repository.GrowthTrackCapsuleMappingRepository;
-import com.capstone.repository.LearnerAtomProgressRepository;
-import com.capstone.repository.LearnerRoadmapRepository;
-import com.capstone.repository.RouteTrackMappingRepository;
+import com.capstone.repository.*;
 import com.capstone.service.LearnerProgressService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,6 +26,7 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
     private final LearnerRoadmapRepository learnerRoadmapRepository;
     private final RouteTrackMappingRepository routeTrackMappingRepository;
     private final GrowthTrackCapsuleMappingRepository growthTrackCapsuleMappingRepository;
+    private final CapsuleAtomMappingRepository capsuleAtomMappingRepository;
 
     @Transactional
     @Override
@@ -157,7 +155,8 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
                 .orElseThrow(() -> new TalentRouteNotFoundException("The learner isn't enrolled in this roadmap"));
 
         updateLearnerRoadmap(talentRoute); // first update learner roadmap
-        return null;
+
+        return "Learner progress recalculated";
     }
 
     private void updateLearnerRoadmap(LearnerRoadmap talentRoute){
@@ -216,6 +215,39 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
                 learnerGrowthTrackProgress.getLearnerCapsuleProgresses().add(learnerCapsuleProgress);
 
                 existingCapsules.put(capsuleId, learnerCapsuleProgress); // update learnerCapsule progress
+            }
+
+            // add non-existing atom to capsule progress
+            addNewAtomsToCapsuleProgress(learnerCapsuleProgress, capsuleId);
+
+        }
+    }
+
+    private void addNewAtomsToCapsuleProgress(LearnerCapsuleProgress learnerCapsuleProgress, UUID capsuleId){
+        //find all the atoms in the capsule(new one + existing in the capsule progress)
+        List<SkillAtomSnapshot> allAtoms =
+                capsuleAtomMappingRepository.findAtomsByCapsuleId(capsuleId);
+
+        // find the existing atoms in the capsule progress
+        Map<UUID, LearnerAtomProgress> existingAtoms = learnerCapsuleProgress.getLearnerAtomProgresses().stream()
+                .collect(Collectors.toMap(cp->cp.getSkillAtom().getSkillAtomId(), cp->cp));
+
+        for(SkillAtomSnapshot atom: allAtoms){
+            UUID atomId = atom.getSkillAtomId();
+            LearnerAtomProgress learnerAtomProgress = existingAtoms.get(atomId);
+
+            if(learnerAtomProgress == null){ // add only new the ones aren't in the capsule progress
+                learnerAtomProgress = LearnerAtomProgress.builder()
+                        .learnerCapsuleProgress(learnerCapsuleProgress)
+                        .skillAtom(atom)
+                        .status(ProgressStatus.NOT_STARTED)
+                        .isCompleted(false)
+                        .build();
+
+                // attach the learner atom progress to capsule progress
+                learnerCapsuleProgress.getLearnerAtomProgresses().add(learnerAtomProgress);
+
+                existingAtoms.put(atomId, learnerAtomProgress); // update learnerAtom progress
             }
 
         }

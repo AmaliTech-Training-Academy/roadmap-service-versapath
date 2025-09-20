@@ -1,5 +1,6 @@
 package com.capstone.controller;
 
+import com.capstone.dto.roadmap.RecalculateProgressRequestDto;
 import com.capstone.dto.roadmap.RoadmapRequestDto;
 import com.capstone.dto.roadmap.AtomProgressRequestDto;
 import com.capstone.service.LearnerProgressService;
@@ -36,6 +37,13 @@ public class RoadmapController {
     @Operation(summary = "Update progress", description = "This end point calculates learner's progress")
     public ResponseEntity<String> updateLearnerProgress(@RequestBody AtomProgressRequestDto dto) {
         learnerProgressService.completeAtomProgress(dto);
+        return ResponseEntity.status(HttpStatus.OK).body("response");
+    }
+
+    @PostMapping("/recalculate-progress")
+    @Operation(summary = "Recalculate", description = "This end point recalculates learner's progress for consistency")
+    public ResponseEntity<String> recalculateLearnerProgress(@RequestBody RecalculateProgressRequestDto dto) {
+        learnerProgressService.recalculateAndUpdateLearnerRoadmap(dto);
         return ResponseEntity.status(HttpStatus.OK).body("response");
     }
 

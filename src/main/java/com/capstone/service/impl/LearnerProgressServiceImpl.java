@@ -155,6 +155,7 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
                 .orElseThrow(() -> new TalentRouteNotFoundException("The learner isn't enrolled in this roadmap"));
 
         updateLearnerRoadmap(talentRoute); // first update learner roadmap
+        recalculateProgress(talentRoute); // recalculate learner progress
 
         return "Learner progress recalculated";
     }
@@ -251,5 +252,87 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
             }
 
         }
+    }
+
+    public void recalculateProgress(LearnerRoadmap talentRoute) {
+        // Recalculate all growth tracks progresses
+        List<LearnerTrackProgress> growthTracks = talentRoute.getLearnerTrackProgresses();
+        int totalGrowthTrackPercentage = getTotalGrowthTrackPercentageInTalentRoute(growthTracks);
+
+        // Recalculate talentRoute percentage
+        recalculateTalentRoutePercentage(talentRoute, growthTracks, totalGrowthTrackPercentage);
+
+    }
+
+    private void recalculateTalentRoutePercentage(LearnerRoadmap talentRoute,
+                                                  List<LearnerTrackProgress> growthTracks,
+                                                  int totalGrowthTrackPercentage ){
+        int talentRoutePercentage = growthTracks.isEmpty() ? 0 : totalGrowthTrackPercentage / growthTracks.size();
+        talentRoute.setOverallProgressPercentage(talentRoutePercentage);
+
+        if (talentRoutePercentage == 0) {
+            talentRoute.setEnrollmentStatus(EnrollmentStatus.ACTIVE); // still enrolled, not started
+        } else if (talentRoutePercentage == 100) {
+            talentRoute.setEnrollmentStatus(EnrollmentStatus.COMPLETED);
+        }
+
+        learnerRoadmapRepository.save(talentRoute); // store roadmap updated progress in the Database
+    }
+
+    private int getTotalGrowthTrackPercentageInTalentRoute(List<LearnerTrackProgress> growthTracks){
+        int totalTrackPercentage = 0; // this is required to update roadmap overall percentage
+
+        // loop throw each growth track progress to recalculate percentage and the get the new percentage
+        for (LearnerTrackProgress growthTrackProgress : growthTracks) {
+            // first get the total percentage of capsule to calculate the growth track percentage
+            List<LearnerCapsuleProgress> capsules = growthTrackProgress.getLearnerCapsuleProgresses();
+            int totalCapsulePercentage = getTotalCapsulePercentageInGrowthTrack(capsules);
+
+            // update current growth track progress information
+            int currentGrowthTrackPercentage = capsules.isEmpty() ? 0 : totalCapsulePercentage / capsules.size();
+            growthTrackProgress.setProgressPercentage(currentGrowthTrackPercentage);
+
+            // set growth track status
+            switch (currentGrowthTrackPercentage) {
+                case 0 -> growthTrackProgress.setStatus(ProgressStatus.NOT_STARTED);
+                case 100 -> growthTrackProgress.setStatus(ProgressStatus.COMPLETED);
+                default -> growthTrackProgress.setStatus(ProgressStatus.IN_PROGRESS);
+            }
+
+            totalTrackPercentage += currentGrowthTrackPercentage;
+        }
+        return totalTrackPercentage;
+    }
+
+    private int getTotalCapsulePercentageInGrowthTrack(List<LearnerCapsuleProgress> capsules){
+        int totalCapsulePercentage = 0; // this is required to calculate the growth track percentage
+
+        // loop throw each capsule progress to recalculate percentage and the get the new percentage
+        for (LearnerCapsuleProgress capsuleProgress : capsules) {
+            // first calculate the atoms completion
+            List<LearnerAtomProgress> atoms = capsuleProgress.getLearnerAtomProgresses();
+
+            int completedAtoms = (int) atoms.stream()
+                    .filter(LearnerAtomProgress::isCompleted)
+                    .count();
+
+            int currentCapsulePercentage = atoms.isEmpty() ? 0 :
+                    (completedAtoms * 100) / atoms.size();
+
+            capsuleProgress.setProgressPercentage(currentCapsulePercentage);
+
+            // update current capsule progress information
+            switch (currentCapsulePercentage) {
+                case 0 ->
+                        capsuleProgress.setStatus(ProgressStatus.NOT_STARTED);
+                case 100 ->
+                        capsuleProgress.setStatus(ProgressStatus.COMPLETED);
+                default ->
+                        capsuleProgress.setStatus(ProgressStatus.IN_PROGRESS);
+            }
+
+            totalCapsulePercentage += currentCapsulePercentage;
+        }
+        return totalCapsulePercentage;
     }
 }

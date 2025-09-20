@@ -75,9 +75,29 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
         atomProgress.setCompletedAt(LocalDateTime.now());
         atomProgress.setCompleted(true);
 
+        LearnerCapsuleProgress capsuleProgress = calculateCapsuleProgress(atomProgress);
+
         learnerAtomProgressRepository.save(atomProgress); //save atom progress
 
         return "Learner progress calculated";
     }
+
+    private LearnerCapsuleProgress calculateCapsuleProgress(LearnerAtomProgress atomProgress){
+        LearnerCapsuleProgress capsuleProgress = atomProgress.getLearnerCapsuleProgress();
+        List<LearnerAtomProgress> atomProgressList = capsuleProgress.getLearnerAtomProgresses();
+
+        // get number of completed atoms
+        long completedAtomsNumber = atomProgressList.stream()
+                .filter(LearnerAtomProgress::isCompleted)
+                .count();
+
+        // calculate percentage
+        int capsulePercentage =  atomProgressList.isEmpty() ? 0 : (int)(completedAtomsNumber * 100)/atomProgressList.size();
+
+        capsuleProgress.setProgressPercentage(capsulePercentage);
+
+        return capsuleProgress;
+    }
+
 
 }

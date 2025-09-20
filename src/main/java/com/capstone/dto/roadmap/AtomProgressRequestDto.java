@@ -11,7 +11,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class StartAtomProgressRequestDto {
+public class AtomProgressRequestDto {
     UUID learnerId;
     UUID atomId;
     UUID trackId;

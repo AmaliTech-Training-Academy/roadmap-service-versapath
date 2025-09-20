@@ -1,6 +1,6 @@
 package com.capstone.service.impl;
 
-import com.capstone.dto.roadmap.StartAtomProgressRequestDto;
+import com.capstone.dto.roadmap.AtomProgressRequestDto;
 import com.capstone.exception.ProgressExistException;
 import com.capstone.exception.ProgressNotFoundException;
 import com.capstone.model.*;
@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -19,9 +20,9 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
 
     @Transactional
     @Override
-    public String startAtomProgress(StartAtomProgressRequestDto startAtomProgressRequestDto) {
-        LearnerAtomProgress atomProgress = learnerAtomProgressRepository.findByLearnerIdAndAtomId(startAtomProgressRequestDto.getLearnerId(),
-                startAtomProgressRequestDto.getAtomId(), startAtomProgressRequestDto.getTrackId())
+    public String startAtomProgress(AtomProgressRequestDto atomProgressRequestDto) {
+        LearnerAtomProgress atomProgress = learnerAtomProgressRepository.findByLearnerIdAndAtomId(atomProgressRequestDto.getLearnerId(),
+                atomProgressRequestDto.getAtomId(), atomProgressRequestDto.getTrackId())
                 .orElseThrow(() -> new ProgressNotFoundException("Atom progress not found for this learner"));
 
         startAtomProgress(atomProgress); // start atom progress
@@ -61,4 +62,22 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
             trackProgress.setStatus(ProgressStatus.IN_PROGRESS);
         }
     }
+
+    @Transactional
+    @Override
+    public String completeAtomProgress(AtomProgressRequestDto atomProgressRequestDto) {
+        LearnerAtomProgress atomProgress = learnerAtomProgressRepository.findByLearnerIdAndAtomId(atomProgressRequestDto.getLearnerId(),
+                        atomProgressRequestDto.getAtomId(), atomProgressRequestDto.getTrackId())
+                .orElseThrow(() -> new ProgressNotFoundException("Atom progress not found for this learner"));
+
+        // update atom progress
+        atomProgress.setStatus(ProgressStatus.COMPLETED);
+        atomProgress.setCompletedAt(LocalDateTime.now());
+        atomProgress.setCompleted(true);
+
+        learnerAtomProgressRepository.save(atomProgress); //save atom progress
+
+        return "Learner progress calculated";
+    }
+
 }

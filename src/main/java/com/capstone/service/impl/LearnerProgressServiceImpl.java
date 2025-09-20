@@ -76,6 +76,7 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
         atomProgress.setCompleted(true);
 
         LearnerCapsuleProgress capsuleProgress = calculateCapsuleProgress(atomProgress);
+        LearnerTrackProgress trackProgress = calculateTrackProgress(capsuleProgress);
 
         learnerAtomProgressRepository.save(atomProgress); //save atom progress
 
@@ -98,6 +99,24 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
 
         return capsuleProgress;
     }
+
+    private LearnerTrackProgress calculateTrackProgress(LearnerCapsuleProgress capsuleProgress){
+        LearnerTrackProgress trackProgress = capsuleProgress.getLearnerTrackProgress();
+        List<LearnerCapsuleProgress> capsuleProgressList = trackProgress.getLearnerCapsuleProgresses();
+
+        // get the sum of capsule percentages
+        long sumOfCapsulesPercentage = capsuleProgressList.stream()
+                .map(LearnerCapsuleProgress::getProgressPercentage)
+                .reduce(0, Integer::sum);
+
+        // calculate percentage
+        int trackPercentage = capsuleProgressList.isEmpty() ? 0 : (int)(sumOfCapsulesPercentage/capsuleProgressList.size());
+
+        trackProgress.setProgressPercentage(trackPercentage);
+
+        return trackProgress;
+    }
+
 
 
 }

@@ -1,24 +1,34 @@
 package com.capstone.service.impl;
 
 import com.capstone.dto.roadmap.AtomProgressRequestDto;
+import com.capstone.dto.roadmap.RecalculateProgressRequestDto;
 import com.capstone.exception.ProgressExistException;
 import com.capstone.exception.ProgressNotFoundException;
+import com.capstone.exception.TalentRouteNotFoundException;
 import com.capstone.model.*;
+import com.capstone.repository.GrowthTrackCapsuleMappingRepository;
 import com.capstone.repository.LearnerAtomProgressRepository;
 import com.capstone.repository.LearnerRoadmapRepository;
+import com.capstone.repository.RouteTrackMappingRepository;
 import com.capstone.service.LearnerProgressService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class LearnerProgressServiceImpl implements LearnerProgressService {
     private final LearnerAtomProgressRepository learnerAtomProgressRepository;
     private final LearnerRoadmapRepository learnerRoadmapRepository;
+    private final RouteTrackMappingRepository routeTrackMappingRepository;
+    private final GrowthTrackCapsuleMappingRepository growthTrackCapsuleMappingRepository;
 
     @Transactional
     @Override
@@ -139,4 +149,43 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
         return learnerRoadmap;
     }
 
+    @Transactional
+    @Override
+    public String recalculateAndUpdateLearnerRoadmap(RecalculateProgressRequestDto dto) {
+        LearnerRoadmap talentRoute = learnerRoadmapRepository
+                .findByUserIdAndTalentRouteId(dto.getLearnerId(), dto.getTalentRouteId())
+                .orElseThrow(() -> new TalentRouteNotFoundException("The learner isn't enrolled in this roadmap"));
+
+        updateLearnerRoadmap(talentRoute); // first update learner roadmap
+        return null;
+    }
+
+    private void updateLearnerRoadmap(LearnerRoadmap talentRoute){
+        // find all growth tracks that belong to talent route (new ones + existing in the roadmap)
+        List<GrowthTrackSnapshot> allGrowthTracks = routeTrackMappingRepository
+                .findGrowthTracksByTalentRouteId(talentRoute.getTalentRoute().getTalentRouteId());
+
+        // find the existing growth tracks in the roadmap
+        Map<UUID, LearnerTrackProgress> existingTracks = talentRoute.getLearnerTrackProgresses().stream()
+                .collect(Collectors.toMap(tp -> tp.getGrowthTrack().getGrowthTrackId(), tp -> tp));
+
+        for(GrowthTrackSnapshot growthTrack: allGrowthTracks){
+            UUID growthTrackId = growthTrack.getGrowthTrackId();
+            LearnerTrackProgress learnerGrowthTrackProgress = existingTracks.get(growthTrackId);
+            if (learnerGrowthTrackProgress == null) { // add only the ones that aren't in the roadmap
+                // add new growth tracks to this learner roadmap
+                learnerGrowthTrackProgress = LearnerTrackProgress.builder()
+                        .learnerRoadmap(talentRoute)
+                        .growthTrack(growthTrack)
+                        .status(ProgressStatus.NOT_STARTED)
+                        .progressPercentage(0)
+                        .build();
+
+                talentRoute.getLearnerTrackProgresses().add(learnerGrowthTrackProgress); // add growth track to roadmap
+
+                existingTracks.put(growthTrackId, learnerGrowthTrackProgress); // update learnerTrackProgress
+            }
+
+        }
+    }
 }

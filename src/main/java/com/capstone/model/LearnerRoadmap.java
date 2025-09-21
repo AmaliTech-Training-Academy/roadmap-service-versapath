@@ -31,7 +31,11 @@ public class LearnerRoadmap {
 
     @NotNull(message = "Talent route is required")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "talent_route_id", nullable = false)
+    @JoinColumn(
+            name = "talent_route_id",
+            referencedColumnName = "talent_route_id",
+            nullable = false
+    )
     private TalentRouteSnapshot talentRoute;
 
     @Enumerated(EnumType.STRING)

@@ -45,7 +45,8 @@ public class CapsuleAtomMapping {
     @NotNull(message = "Skill capsule is required")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
-            name = "skill_capsule_id",
+            name = "skill_capsule_id", // column in mapping table
+            referencedColumnName = "skill_capsule_id", // target column in skill_capsule_snapshot
             nullable = false,
             foreignKey = @ForeignKey(name = "fk_capsule_mapping_capsule")
     )
@@ -56,7 +57,8 @@ public class CapsuleAtomMapping {
     @NotNull(message = "Skill atom is required")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
-            name = "skill_atom_id",
+            name = "skill_atom_id", // column in mapping table
+            referencedColumnName = "skill_atom_id", // target column in skill_atom_snapshot
             nullable = false,
             foreignKey = @ForeignKey(name = "fk_capsule_mapping_atom")
     )

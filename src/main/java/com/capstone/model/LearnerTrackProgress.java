@@ -33,7 +33,11 @@ public class LearnerTrackProgress {
 
     @NotNull(message = "Growth track is required")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "growth_track_id", nullable = false)
+    @JoinColumn(
+            name = "growth_track_id",
+            referencedColumnName = "growth_track_id",
+            nullable = false
+    )
     private GrowthTrackSnapshot growthTrack;
 
     @Builder.Default

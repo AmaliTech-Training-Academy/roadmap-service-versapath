@@ -19,6 +19,7 @@ import java.util.UUID;
                         columnNames = {"talent_route_id", "growth_track_id"}
                 ),
                 @UniqueConstraint(
+
                         name = "uk_route_sequence",
                         columnNames = {"talent_route_id", "sequence_order"}
                 )
@@ -45,6 +46,7 @@ public class RouteTrackMapping {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "talent_route_id",
+            referencedColumnName = "talent_route_id",
             nullable = false,
             foreignKey = @ForeignKey(name = "fk_route_mapping_route")
     )
@@ -55,6 +57,7 @@ public class RouteTrackMapping {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "growth_track_id",
+            referencedColumnName = "growth_track_id",
             nullable = false,
             foreignKey = @ForeignKey(name = "fk_route_mapping_track")
     )

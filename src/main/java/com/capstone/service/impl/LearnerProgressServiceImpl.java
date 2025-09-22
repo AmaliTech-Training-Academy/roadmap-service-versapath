@@ -30,7 +30,7 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
 
     @Transactional
     @Override
-    public String startAtomProgress(AtomProgressRequestDto atomProgressRequestDto) {
+    public void startAtomProgress(AtomProgressRequestDto atomProgressRequestDto) {
         LearnerAtomProgress atomProgress = learnerAtomProgressRepository.findByLearnerIdAndAtomId(atomProgressRequestDto.getLearnerId(),
                 atomProgressRequestDto.getAtomId(), atomProgressRequestDto.getTrackId(),
                         atomProgressRequestDto.getCapsuleId(), atomProgressRequestDto.getTalentRouteId())
@@ -42,7 +42,6 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
 
         learnerAtomProgressRepository.save(atomProgress);
 
-        return "Learner has started";
     }
 
     private void startAtomProgress(LearnerAtomProgress atomProgress){
@@ -76,7 +75,7 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
 
     @Transactional
     @Override
-    public String completeAtomProgress(AtomProgressRequestDto atomProgressRequestDto) {
+    public void completeAtomProgress(AtomProgressRequestDto atomProgressRequestDto) {
         LearnerAtomProgress atomProgress = learnerAtomProgressRepository.findByLearnerIdAndAtomId(atomProgressRequestDto.getLearnerId(),
                         atomProgressRequestDto.getAtomId(), atomProgressRequestDto.getTrackId(),
                         atomProgressRequestDto.getCapsuleId(), atomProgressRequestDto.getTalentRouteId())
@@ -95,7 +94,6 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
 
         learnerRoadmapRepository.save(learnerRoadmap); // save roadmap progress
 
-        return "Learner progress calculated";
     }
 
     private LearnerCapsuleProgress calculateCapsuleProgress(LearnerAtomProgress atomProgress){
@@ -151,7 +149,7 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
 
     @Transactional
     @Override
-    public String recalculateAndUpdateLearnerRoadmap(RecalculateProgressRequestDto dto) {
+    public void recalculateAndUpdateLearnerRoadmap(RecalculateProgressRequestDto dto) {
         LearnerRoadmap talentRoute = learnerRoadmapRepository
                 .findByUserIdAndTalentRouteId(dto.getLearnerId(), dto.getTalentRouteId())
                 .orElseThrow(() -> new TalentRouteNotFoundException("The learner isn't enrolled in this roadmap"));
@@ -159,7 +157,6 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
         updateLearnerRoadmap(talentRoute); // first update learner roadmap
         recalculateProgress(talentRoute); // recalculate learner progress
 
-        return "Learner progress recalculated";
     }
 
     private void updateLearnerRoadmap(LearnerRoadmap talentRoute){

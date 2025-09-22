@@ -26,7 +26,7 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
 
     @Transactional
     @Override
-    public String assignLearnerToTalentRoute(RoadmapRequestDto roadmapRequestDto) {
+    public void assignLearnerToTalentRoute(RoadmapRequestDto roadmapRequestDto) {
 
         LearnerRoadmap learnerRoadmap = createLearnerRoadmap(roadmapRequestDto.getLearnerId(),
                 roadmapRequestDto.getTalentRouteId());
@@ -40,7 +40,6 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
         learnerRoadmap.setLearnerTrackProgresses(growthTrackProgresses); // map roadmap to growth track progress
 
         learnerRoadmapRepository.save(learnerRoadmap);
-        return "Talent route assigned!";
     }
 
     private LearnerRoadmap createLearnerRoadmap(UUID learnerId, UUID talentRouteId){

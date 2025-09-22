@@ -21,9 +21,13 @@ public interface LearnerAtomProgressRepository extends JpaRepository<LearnerAtom
         WHERE lr.userId = :learnerId
           AND ltp.growthTrack.growthTrackId = :trackId
           AND lap.skillAtom.skillAtomId = :atomId
+          AND lap.learnerCapsuleProgress.skillCapsule.skillCapsuleId= :capsuleId
+          AND lr.talentRoute.talentRouteId = :talentRouteId
     """)
     Optional<LearnerAtomProgress> findByLearnerIdAndAtomId(@Param("learnerId") UUID learnerId,
                                                            @Param("atomId") UUID atomId,
-                                                           @Param("trackId") UUID trackId);
+                                                           @Param("trackId") UUID trackId,
+                                                           @Param("capsuleId") UUID capsuleId,
+                                                           @Param("talentRouteId") UUID talentRouteId);
 
 }

@@ -35,9 +35,9 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
         List<GrowthTrackSnapshot> growthTracks = routeTrackMappingRepository
                 .findGrowthTracksByTalentRouteId(roadmapRequestDto.getTalentRouteId());
 
-        List<LearnerTrackProgress> trackProgresses = createTrackProgresses(growthTracks, learnerRoadmap);
+        List<LearnerTrackProgress> growthTrackProgresses = createGrowthTrackProgresses(growthTracks, learnerRoadmap);
 
-        learnerRoadmap.setLearnerTrackProgresses(trackProgresses); // map roadmap to growth track progress
+        learnerRoadmap.setLearnerTrackProgresses(growthTrackProgresses); // map roadmap to growth track progress
 
         learnerRoadmapRepository.save(learnerRoadmap);
         return "Talent route assigned!";
@@ -64,7 +64,7 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
                 .build();
     }
 
-    private List<LearnerTrackProgress> createTrackProgresses(List<GrowthTrackSnapshot> growthTracks, LearnerRoadmap learnerRoadmap){
+    private List<LearnerTrackProgress> createGrowthTrackProgresses(List<GrowthTrackSnapshot> growthTracks, LearnerRoadmap learnerRoadmap){
         return growthTracks.stream()
                 .map(track -> {
                     LearnerTrackProgress growthTrackProgress = LearnerTrackProgress.builder()

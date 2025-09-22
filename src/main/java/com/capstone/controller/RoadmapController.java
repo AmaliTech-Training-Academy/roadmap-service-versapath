@@ -1,7 +1,7 @@
 package com.capstone.controller;
 
 import com.capstone.dto.roadmap.RoadmapRequestDto;
-import com.capstone.dto.roadmap.StartAtomProgressRequestDto;
+import com.capstone.dto.roadmap.AtomProgressRequestDto;
 import com.capstone.service.LearnerProgressService;
 import com.capstone.service.LearnerRoadmapService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,8 +27,15 @@ public class RoadmapController {
 
     @PostMapping("/start-progress")
     @Operation(summary = "Start progress", description = "This end point gets a learner to start tracking progress")
-    public ResponseEntity<String> startTrackingProgress(@RequestBody StartAtomProgressRequestDto dto) {
+    public ResponseEntity<String> startTrackingProgress(@RequestBody AtomProgressRequestDto dto) {
         learnerProgressService.startAtomProgress(dto);
+        return ResponseEntity.status(HttpStatus.OK).body("response");
+    }
+
+    @PostMapping("/complete-atom-progress")
+    @Operation(summary = "Update progress", description = "This end point calculates learner's progress")
+    public ResponseEntity<String> updateLearnerProgress(@RequestBody AtomProgressRequestDto dto) {
+        learnerProgressService.completeAtomProgress(dto);
         return ResponseEntity.status(HttpStatus.OK).body("response");
     }
 

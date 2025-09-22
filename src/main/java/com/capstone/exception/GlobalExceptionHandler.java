@@ -230,4 +230,11 @@ public class GlobalExceptionHandler {
                 .body(ApiResponseDto.error(ex.getMessage(), "Progress exist"));
     }
 
+    @ExceptionHandler(LessonException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleLessonException(LessonException ex) {
+        log.error("Lesson exception: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponseDto.error(ex.getMessage(), "Lesson Exception"));
+    }
+
 }

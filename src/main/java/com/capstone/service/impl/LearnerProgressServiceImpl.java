@@ -2,6 +2,7 @@ package com.capstone.service.impl;
 
 import com.capstone.dto.roadmap.AtomProgressRequestDto;
 import com.capstone.dto.roadmap.RecalculateProgressRequestDto;
+import com.capstone.exception.LessonException;
 import com.capstone.exception.ProgressExistException;
 import com.capstone.exception.ProgressNotFoundException;
 import com.capstone.exception.TalentRouteNotFoundException;
@@ -81,10 +82,17 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
                         atomProgressRequestDto.getCapsuleId(), atomProgressRequestDto.getTalentRouteId())
                 .orElseThrow(() -> new ProgressNotFoundException("Atom progress not found for this learner"));
 
-        // update atom progress
-        atomProgress.setStatus(ProgressStatus.COMPLETED);
-        atomProgress.setCompletedAt(LocalDateTime.now());
-        atomProgress.setCompleted(true);
+        if(atomProgress.getStatus().equals(ProgressStatus.IN_PROGRESS)){
+            // update atom progress
+            atomProgress.setStatus(ProgressStatus.COMPLETED);
+            atomProgress.setCompletedAt(LocalDateTime.now());
+            atomProgress.setCompleted(true);
+        }else if(atomProgress.getStatus().equals(ProgressStatus.NOT_STARTED)){
+            throw new LessonException("You haven't started learning this lesson");
+        }
+        else{
+            throw new LessonException("You have already completed this lesson");
+        }
 
         learnerAtomProgressRepository.save(atomProgress); //save atom progress
 

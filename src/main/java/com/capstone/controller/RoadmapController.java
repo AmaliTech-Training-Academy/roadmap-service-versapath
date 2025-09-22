@@ -25,28 +25,28 @@ public class RoadmapController {
     @Operation(summary = "Assign track", description = "This end point allows a learner to select talent route")
     public ResponseEntity<ApiResponseDto<String>> assignRouteToLearner(@RequestBody RoadmapRequestDto roadmapRequestDto) {
         learnerRoadmapService.assignLearnerToTalentRoute(roadmapRequestDto);
-        return ResponseEntity.ok(ApiResponseDto.success("You've successfuly enrolled in a talent route"));
+        return ResponseEntity.ok(ApiResponseDto.success("You've successfully enrolled in a talent route"));
     }
 
     @PostMapping("/start-progress")
     @Operation(summary = "Start progress", description = "This end point gets a learner to start tracking progress")
-    public ResponseEntity<String> startTrackingProgress(@RequestBody AtomProgressRequestDto dto) {
+    public ResponseEntity<ApiResponseDto<String>> startTrackingProgress(@RequestBody AtomProgressRequestDto dto) {
         learnerProgressService.startAtomProgress(dto);
-        return ResponseEntity.status(HttpStatus.OK).body("response");
+        return ResponseEntity.ok(ApiResponseDto.success("You've started your learning path"));
     }
 
     @PostMapping("/complete-atom-progress")
     @Operation(summary = "Update progress", description = "This end point calculates learner's progress")
-    public ResponseEntity<String> updateLearnerProgress(@RequestBody AtomProgressRequestDto dto) {
+    public ResponseEntity<ApiResponseDto<String>> updateLearnerProgress(@RequestBody AtomProgressRequestDto dto) {
         learnerProgressService.completeAtomProgress(dto);
-        return ResponseEntity.status(HttpStatus.OK).body("response");
+        return ResponseEntity.ok(ApiResponseDto.success("Congratulation on completing this lesson"));
     }
 
     @PostMapping("/recalculate-progress")
     @Operation(summary = "Recalculate", description = "This end point recalculates learner's progress for consistency")
-    public ResponseEntity<String> recalculateLearnerProgress(@RequestBody RecalculateProgressRequestDto dto) {
+    public ResponseEntity<ApiResponseDto<String>> recalculateLearnerProgress(@RequestBody RecalculateProgressRequestDto dto) {
         learnerProgressService.recalculateAndUpdateLearnerRoadmap(dto);
-        return ResponseEntity.status(HttpStatus.OK).body("response");
+        return ResponseEntity.ok(ApiResponseDto.success("Async learner progress successfully"));
     }
 
 }

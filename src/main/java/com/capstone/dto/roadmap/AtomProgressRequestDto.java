@@ -14,5 +14,7 @@ import java.util.UUID;
 public class AtomProgressRequestDto {
     UUID learnerId;
     UUID atomId;
+    UUID capsuleId;
     UUID trackId;
+    UUID talentRouteId;
 }

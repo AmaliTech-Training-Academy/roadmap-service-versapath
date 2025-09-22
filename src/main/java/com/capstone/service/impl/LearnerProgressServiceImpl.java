@@ -32,7 +32,8 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
     @Override
     public String startAtomProgress(AtomProgressRequestDto atomProgressRequestDto) {
         LearnerAtomProgress atomProgress = learnerAtomProgressRepository.findByLearnerIdAndAtomId(atomProgressRequestDto.getLearnerId(),
-                atomProgressRequestDto.getAtomId(), atomProgressRequestDto.getTrackId())
+                atomProgressRequestDto.getAtomId(), atomProgressRequestDto.getTrackId(),
+                        atomProgressRequestDto.getCapsuleId(), atomProgressRequestDto.getTalentRouteId())
                 .orElseThrow(() -> new ProgressNotFoundException("Atom progress not found for this learner"));
 
         startAtomProgress(atomProgress); // start atom progress
@@ -77,7 +78,8 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
     @Override
     public String completeAtomProgress(AtomProgressRequestDto atomProgressRequestDto) {
         LearnerAtomProgress atomProgress = learnerAtomProgressRepository.findByLearnerIdAndAtomId(atomProgressRequestDto.getLearnerId(),
-                        atomProgressRequestDto.getAtomId(), atomProgressRequestDto.getTrackId())
+                        atomProgressRequestDto.getAtomId(), atomProgressRequestDto.getTrackId(),
+                        atomProgressRequestDto.getCapsuleId(), atomProgressRequestDto.getTalentRouteId())
                 .orElseThrow(() -> new ProgressNotFoundException("Atom progress not found for this learner"));
 
         // update atom progress

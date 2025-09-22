@@ -116,6 +116,10 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
         // calculate percentage
         int capsulePercentage =  atomProgressList.isEmpty() ? 0 : (int)(completedAtomsNumber * 100)/atomProgressList.size();
 
+        if(capsuleProgress.getProgressPercentage() == 100){
+            capsuleProgress.setStatus(ProgressStatus.COMPLETED);
+            capsuleProgress.setCompletedAt(LocalDateTime.now());
+        }
         capsuleProgress.setProgressPercentage(capsulePercentage);
 
         return capsuleProgress;
@@ -133,6 +137,10 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
         // calculate percentage
         int trackPercentage = capsuleProgressList.isEmpty() ? 0 : (int)(sumOfCapsulesPercentage/capsuleProgressList.size());
 
+        if(growthTrackProgress.getProgressPercentage() == 100){
+            growthTrackProgress.setStatus(ProgressStatus.COMPLETED);
+            growthTrackProgress.setCompletedAt(LocalDateTime.now());
+        }
         growthTrackProgress.setProgressPercentage(trackPercentage);
 
         return growthTrackProgress;
@@ -149,6 +157,10 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
 
         // calculate percentage
         int learnerRoadmapPercentage = growthTrackProgressList.isEmpty() ? 0 : (int)(sumOfGrowthTracksPercentage/growthTrackProgressList.size());
+
+        if(learnerRoadmap.getOverallProgressPercentage() == 100){
+            learnerRoadmap.setCompletionDate(LocalDateTime.now());
+        }
 
         learnerRoadmap.setOverallProgressPercentage(learnerRoadmapPercentage);
 

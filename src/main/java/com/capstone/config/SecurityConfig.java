@@ -4,7 +4,6 @@ import com.capstone.security.UserContextFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -48,10 +47,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/roadmap/skill-atoms/**").hasRole("ADMIN")
 
                 // Mixed access endpoints (roadmap operations)
-                .requestMatchers(HttpMethod.POST, "/api/v1/roadmap").hasAnyRole("ADMIN", "LEARNER")
-                .requestMatchers(HttpMethod.POST, "/api/v1/roadmap/start-progress").hasRole("LEARNER")
-                .requestMatchers(HttpMethod.POST, "/api/v1/roadmap/complete-atom-progress").hasRole("LEARNER")
-                .requestMatchers(HttpMethod.POST, "/api/v1/roadmap/recalculate-progress").hasAnyRole("ADMIN", "LEARNER")
+                .requestMatchers("/api/v1/roadmap").hasAnyRole("ADMIN", "LEARNER")
+                .requestMatchers("/api/v1/roadmap/start-progress").hasRole("LEARNER")
+                .requestMatchers("/api/v1/roadmap/complete-atom-progress").hasRole("LEARNER")
+                .requestMatchers("/api/v1/roadmap/recalculate-progress").hasAnyRole("ADMIN", "LEARNER")
 
                 // Learner-only endpoints (learner view)
                 .requestMatchers("/api/v1/learner/**").hasRole("LEARNER")

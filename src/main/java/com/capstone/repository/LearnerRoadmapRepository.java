@@ -20,4 +20,12 @@ public interface LearnerRoadmapRepository extends JpaRepository<LearnerRoadmap, 
     Optional<LearnerRoadmap> findByUserIdAndTalentRouteId(@Param("userId") UUID userId,
                                                           @Param("talentRouteId") UUID talentRouteId);
 
+    @Query("""
+        SELECT DISTINCT rm FROM LearnerRoadmap rm
+        LEFT JOIN FETCH rm.talentRoute tr
+        WHERE rm.userId = :learnerId
+        AND rm.enrollmentStatus = 'ACTIVE'
+    """)
+    Optional<LearnerRoadmap> findActiveRoadmapByUserId(@Param("learnerId") UUID learnerId);
+
 }

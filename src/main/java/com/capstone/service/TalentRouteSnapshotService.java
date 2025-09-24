@@ -16,6 +16,7 @@ public interface TalentRouteSnapshotService {
     TalentRouteSnapshot createTalentRoute(TalentRouteEvent event);
     TalentRouteSnapshot updateTalentRoute(TalentRouteSnapshot existingRoute, TalentRouteEvent event);
     void smartUpdateRouteTrackMappings(TalentRouteSnapshot route, List<Map<UUID, Integer>> growthTrackMappings);
+    TalentRouteSnapshot assignTracksToRoute(TalentRouteEvent event);
 
 
     PaginatedResponseDto<TalentRouteResponseDto> findAllBasic(Pageable pageable);

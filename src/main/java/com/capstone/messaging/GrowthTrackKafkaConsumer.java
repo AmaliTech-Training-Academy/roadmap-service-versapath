@@ -1,5 +1,6 @@
 package com.capstone.messaging;
 
+import com.capstone.exception.GrowthTrackNotFoundException;
 import com.capstone.exception.GrowthTrackProcessingException;
 import com.capstone.exception.SkillCapsuleNotFoundException;
 import com.capstone.exception.TrackCapsuleMappingException;
@@ -68,22 +69,22 @@ public class GrowthTrackKafkaConsumer {
         } catch (GrowthTrackProcessingException e) {
             log.error("Failed to process growth track event for trackId: {}. Error: {}",
                     event.getId(), e.getMessage(), e);
-            handleProcessingFailure(event, acknowledgment);
+            handleProcessingFailure(event, acknowledgment, "CREATE");
 
         } catch (TrackCapsuleMappingException e) {
             log.error("Failed to process track-capsule mappings for trackId: {}. Error: {}",
                     event.getId(), e.getMessage(), e);
-            handleProcessingFailure(event, acknowledgment);
+            handleProcessingFailure(event, acknowledgment, "CREATE");
 
         } catch (SkillCapsuleNotFoundException e) {
             log.error("Missing skill capsule reference for trackId: {}. Error: {}",
                     event.getId(), e.getMessage(), e);
-            handleProcessingFailure(event, acknowledgment);
+            handleProcessingFailure(event, acknowledgment, "CREATE");
 
         } catch (Exception e) {
             log.error("Unexpected error processing growth track event for trackId: {}. Error: {}",
                     event.getId(), e.getMessage(), e);
-            handleProcessingFailure(event, acknowledgment);
+            handleProcessingFailure(event, acknowledgment, "CREATE");
         }
     }
 
@@ -172,20 +173,30 @@ public class GrowthTrackKafkaConsumer {
     /**
      * Handle processing failures with DLT support
      */
-    private void handleProcessingFailure(GrowthTrackEvent event, Acknowledgment acknowledgment) {
+    private void handleProcessingFailure(GrowthTrackEvent event, Acknowledgment acknowledgment, String operationType) {
         String trackId = event.getId().toString();
 
-        log.error("Processing failed for growth track event with trackId: {}. Sending to DLT topic: {}",
-                trackId, growthTrackDltTopic);
+        log.error("Processing failed for growth track {} operation with trackId: {}. Sending to DLT topic: {}",
+                operationType, trackId, growthTrackDltTopic);
 
         try {
+            // Create enhanced event with operation type for DLT analysis
+            Map<String, Object> dltPayload = Map.of(
+                    "originalEvent", event,
+                    "operationType", operationType,
+                    "failureTimestamp", System.currentTimeMillis(),
+                    "trackId", trackId
+            );
+
             // Send to Dead Letter Topic for manual review/reprocessing
-            kafkaTemplate.send(growthTrackDltTopic, trackId, event)
+            kafkaTemplate.send(growthTrackDltTopic, trackId, dltPayload)
                     .whenComplete((result, ex) -> {
                         if (ex == null) {
-                            log.info("Successfully sent failed growth track event to DLT for trackId: {}", trackId);
+                            log.info("Successfully sent failed growth track {} event to DLT for trackId: {}",
+                                    operationType, trackId);
                         } else {
-                            log.error("Failed to send growth track event to DLT for trackId: {}", trackId, ex);
+                            log.error("Failed to send growth track {} event to DLT for trackId: {}",
+                                    operationType, trackId, ex);
                         }
                     });
 
@@ -193,8 +204,138 @@ public class GrowthTrackKafkaConsumer {
             acknowledgment.acknowledge();
 
         } catch (Exception dltException) {
-            log.error("Critical: Failed to send growth track message to DLT for trackId: {}. Message will be retried by Kafka",
-                    trackId, dltException);
+            log.error("Critical: Failed to send growth track {} message to DLT for trackId: {}. Message will be retried by Kafka",
+                    operationType, trackId, dltException);
         }
+    }
+
+    @KafkaListener(topics = "${KAFKA_GROWTH_TRACK_UPDATE_TOPIC:growthTrack.update}")
+    @Retryable(
+            retryFor = {GrowthTrackProcessingException.class, TrackCapsuleMappingException.class, SkillCapsuleNotFoundException.class,
+                    Exception.class},
+            backoff = @Backoff(delay = 1000, multiplier = 2)
+    )
+    public void listenGrowthTrackUpdate(
+            @Payload GrowthTrackEvent event,
+            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+            @Header(KafkaHeaders.OFFSET) long offset,
+            Acknowledgment acknowledgment) {
+
+        log.info("Received growthTrack.update event from topic: {}, partition: {}, offset: {}, trackId: {}",
+                topic, partition, offset, event.getId());
+
+        try {
+            // Validate event
+            validateGrowthTrackEvent(event);
+
+            // Process the growth track update using existing service logic
+            GrowthTrackSnapshot updatedTrack = growthTrackSnapshotService.processGrowthTrackEvent(event);
+
+            log.info("Successfully updated growth track for trackId: {}, internal ID: {}, capsules: {}",
+                    event.getId(), updatedTrack.getId(),
+                    event.getSkillCapsules() != null ? event.getSkillCapsules().size() : 0);
+
+            // Acknowledge message only after successful processing
+            acknowledgment.acknowledge();
+
+        } catch (GrowthTrackProcessingException e) {
+            log.error("Failed to update growth track for trackId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "UPDATE");
+
+        } catch (TrackCapsuleMappingException e) {
+            log.error("Failed to update track-capsule mappings for trackId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "UPDATE");
+
+        } catch (SkillCapsuleNotFoundException e) {
+            log.error("Missing skill capsule reference during track update for trackId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "UPDATE");
+
+        } catch (Exception e) {
+            log.error("Unexpected error updating growth track for trackId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "UPDATE");
+        }
+    }
+
+    @KafkaListener(topics = "${KAFKA_GROWTH_TRACK_ASSIGN_TOPIC:growthTrack.assign}")
+    @Retryable(
+            retryFor = {GrowthTrackProcessingException.class, TrackCapsuleMappingException.class, SkillCapsuleNotFoundException.class,
+                    Exception.class},
+            backoff = @Backoff(delay = 1000, multiplier = 2)
+    )
+    public void listenGrowthTrackAssign(
+            @Payload GrowthTrackEvent event,
+            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+            @Header(KafkaHeaders.OFFSET) long offset,
+            Acknowledgment acknowledgment) {
+
+        log.info("Received growthTrack.assign event from topic: {}, partition: {}, offset: {}, trackId: {}",
+                topic, partition, offset, event.getId());
+
+        try {
+            // Validate growth track assign event
+            validateGrowthTrackAssignEvent(event);
+
+            // Process capsule assignment to existing growth track
+            GrowthTrackSnapshot updatedTrack = growthTrackSnapshotService.assignCapsulesToTrack(event);
+
+            log.info("Successfully assigned capsules to growth track for trackId: {}, internal ID: {}, capsules: {}",
+                    event.getId(), updatedTrack.getId(),
+                    event.getSkillCapsules() != null ? event.getSkillCapsules().size() : 0);
+
+            // Acknowledge message only after successful processing
+            acknowledgment.acknowledge();
+
+        } catch (GrowthTrackNotFoundException e) {
+            log.error("Growth track not found for assignment, trackId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "ASSIGN");
+
+        } catch (TrackCapsuleMappingException e) {
+            log.error("Failed to assign track-capsule mappings for trackId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "ASSIGN");
+
+        } catch (SkillCapsuleNotFoundException e) {
+            log.error("Missing skill capsule reference during track assignment for trackId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "ASSIGN");
+
+        } catch (Exception e) {
+            log.error("Unexpected error assigning capsules to growth track for trackId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "ASSIGN");
+        }
+    }
+
+    /**
+     * Validate growthTrack.assign event - focuses on capsule mappings only
+     */
+    private void validateGrowthTrackAssignEvent(GrowthTrackEvent event) {
+        log.debug("Validating growthTrack.assign event: {}", event);
+
+        // Basic event validation
+        if (event == null) {
+            throw new GrowthTrackProcessingException("Growth track assign event cannot be null");
+        }
+
+        if (event.getId() == null) {
+            throw new GrowthTrackProcessingException("Growth track assign event must contain a valid track ID");
+        }
+
+        // For assign operation, skillCapsules mappings are required
+        if (event.getSkillCapsules() == null || event.getSkillCapsules().isEmpty()) {
+            throw new TrackCapsuleMappingException("Growth track assign event must contain at least one skill capsule mapping");
+        }
+
+        // Validate capsule mappings structure
+        validateSkillCapsuleMappings(event.getSkillCapsules(), event.getId());
+
+        log.debug("Growth track assign event validation successful for trackId: {}", event.getId());
     }
 }

@@ -2,6 +2,7 @@ package com.capstone.messaging;
 
 import com.capstone.exception.CapsuleAtomMappingException;
 import com.capstone.exception.SkillAtomNotFoundException;
+import com.capstone.exception.SkillCapsuleNotFoundException;
 import com.capstone.exception.SkillCapsuleProcessingException;
 import com.capstone.model.SkillCapsuleSnapshot;
 import com.capstone.service.SkillCapsuleSnapshotService;
@@ -63,22 +64,22 @@ public class CapsuleKafkaConsumer {
         } catch (SkillCapsuleProcessingException e) {
             log.error("Failed to process skill capsule event for capsuleId: {}. Error: {}",
                     event.getId(), e.getMessage(), e);
-            handleProcessingFailure(event, acknowledgment);
+            handleProcessingFailure(event, acknowledgment,"CREATE");
 
         } catch (CapsuleAtomMappingException e) {
             log.error("Failed to process capsule-atom mappings for capsuleId: {}. Error: {}",
                     event.getId(), e.getMessage(), e);
-            handleProcessingFailure(event, acknowledgment);
+            handleProcessingFailure(event, acknowledgment,"CREATE");
 
         } catch (SkillAtomNotFoundException e) {
             log.error("Missing skill atom reference for capsuleId: {}. Error: {}",
                     event.getId(), e.getMessage(), e);
-            handleProcessingFailure(event, acknowledgment);
+            handleProcessingFailure(event, acknowledgment,"CREATE");
 
         } catch (Exception e) {
             log.error("Unexpected error processing skill capsule event for capsuleId: {}. Error: {}",
                     event.getId(), e.getMessage(), e);
-            handleProcessingFailure(event, acknowledgment);
+            handleProcessingFailure(event, acknowledgment,"CREATE");
         }
     }
 
@@ -180,20 +181,30 @@ public class CapsuleKafkaConsumer {
     /**
      * Handle processing failures with DLT support
      */
-    private void handleProcessingFailure(SkillCapsuleEvent event, Acknowledgment acknowledgment) {
+    private void handleProcessingFailure(SkillCapsuleEvent event, Acknowledgment acknowledgment, String operationType) {
         String capsuleId = event.getId().toString();
 
-        log.error("Processing failed for skill capsule event with capsuleId: {}. Sending to DLT topic: {}",
-                capsuleId, capsuleDltTopic);
+        log.error("Processing failed for skill capsule {} operation with capsuleId: {}. Sending to DLT topic: {}",
+                operationType, capsuleId, capsuleDltTopic);
 
         try {
-            // Send to Dead Letter Topic for manual review/reprocessing - O(1)
-            kafkaTemplate.send(capsuleDltTopic, capsuleId, event)
+            // Create enhanced event with operation type for DLT analysis
+            Map<String, Object> dltPayload = Map.of(
+                    "originalEvent", event,
+                    "operationType", operationType,
+                    "failureTimestamp", System.currentTimeMillis(),
+                    "capsuleId", capsuleId
+            );
+
+            // Send to Dead Letter Topic for manual review/reprocessing
+            kafkaTemplate.send(capsuleDltTopic, capsuleId, dltPayload)
                     .whenComplete((result, ex) -> {
                         if (ex == null) {
-                            log.info("Successfully sent failed skill capsule event to DLT for capsuleId: {}", capsuleId);
+                            log.info("Successfully sent failed skill capsule {} event to DLT for capsuleId: {}",
+                                    operationType, capsuleId);
                         } else {
-                            log.error("Failed to send skill capsule event to DLT for capsuleId: {}", capsuleId, ex);
+                            log.error("Failed to send skill capsule {} event to DLT for capsuleId: {}",
+                                    operationType, capsuleId, ex);
                         }
                     });
 
@@ -201,8 +212,138 @@ public class CapsuleKafkaConsumer {
             acknowledgment.acknowledge();
 
         } catch (Exception dltException) {
-            log.error("Critical: Failed to send skill capsule message to DLT for capsuleId: {}. Message will be retried by Kafka",
-                    capsuleId, dltException);
+            log.error("Critical: Failed to send skill capsule {} message to DLT for capsuleId: {}. Message will be retried by Kafka",
+                    operationType, capsuleId, dltException);
         }
     }
+
+    @KafkaListener(topics = "${KAFKA_CAPSULE_UPDATE_TOPIC:capsule.update}")
+    @Retryable(
+            retryFor = {SkillCapsuleProcessingException.class, CapsuleAtomMappingException.class, Exception.class},
+            backoff = @Backoff(delay = 1000, multiplier = 2)
+    )
+    public void listenCapsuleUpdate(
+            @Payload SkillCapsuleEvent event,
+            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+            @Header(KafkaHeaders.OFFSET) long offset,
+            Acknowledgment acknowledgment) {
+
+        log.info("Received capsule.update event from topic: {}, partition: {}, offset: {}, capsuleId: {}",
+                topic, partition, offset, event.getId());
+
+        try {
+            // Validate event
+            validateSkillCapsuleEvent(event);
+
+            // Process the skill capsule update using existing service logic
+            SkillCapsuleSnapshot updatedCapsule = skillCapsuleSnapshotService.processSkillCapsuleEvent(event);
+
+            log.info("Successfully updated skill capsule for capsuleId: {}, internal ID: {}, atoms: {}",
+                    event.getId(), updatedCapsule.getId(),
+                    event.getSkillAtom() != null ? event.getSkillAtom().size() : 0);
+
+            // Acknowledge message only after successful processing
+            acknowledgment.acknowledge();
+
+        } catch (SkillCapsuleProcessingException e) {
+            log.error("Failed to update skill capsule for capsuleId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "UPDATE");
+
+        } catch (CapsuleAtomMappingException e) {
+            log.error("Failed to update capsule-atom mappings for capsuleId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "UPDATE");
+
+        } catch (SkillAtomNotFoundException e) {
+            log.error("Missing skill atom reference during capsule update for capsuleId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "UPDATE");
+
+        } catch (Exception e) {
+            log.error("Unexpected error updating skill capsule for capsuleId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "UPDATE");
+        }
+    }
+
+    @KafkaListener(topics = "${KAFKA_CAPSULE_ASSIGN_TOPIC:capsule.assign}")
+    @Retryable(
+            retryFor = {SkillCapsuleProcessingException.class, CapsuleAtomMappingException.class, SkillAtomNotFoundException.class,
+                    Exception.class},
+            backoff = @Backoff(delay = 1000, multiplier = 2)
+    )
+    public void listenCapsuleAssign(
+            @Payload SkillCapsuleEvent event,
+            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+            @Header(KafkaHeaders.OFFSET) long offset,
+            Acknowledgment acknowledgment) {
+
+        log.info("Received capsule.assign event from topic: {}, partition: {}, offset: {}, capsuleId: {}",
+                topic, partition, offset, event.getId());
+
+        try {
+            // Validate capsule exists
+            validateCapsuleAssignEvent(event);
+
+            // Process atom assignment to existing capsule
+            SkillCapsuleSnapshot updatedCapsule = skillCapsuleSnapshotService.assignAtomsToCapsule(event);
+
+            log.info("Successfully assigned atoms to capsule for capsuleId: {}, internal ID: {}, atoms: {}",
+                    event.getId(), updatedCapsule.getId(),
+                    event.getSkillAtom() != null ? event.getSkillAtom().size() : 0);
+
+            // Acknowledge message only after successful processing
+            acknowledgment.acknowledge();
+
+        } catch (SkillCapsuleNotFoundException e) {
+            log.error("Capsule not found for assignment, capsuleId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "ASSIGN");
+
+        } catch (CapsuleAtomMappingException e) {
+            log.error("Failed to assign capsule-atom mappings for capsuleId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "ASSIGN");
+
+        } catch (SkillAtomNotFoundException e) {
+            log.error("Missing skill atom reference during capsule assignment for capsuleId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "ASSIGN");
+
+        } catch (Exception e) {
+            log.error("Unexpected error assigning atoms to capsule for capsuleId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "ASSIGN");
+        }
+    }
+
+    /**
+     * Validate capsule.assign event - focuses on atom mappings only
+     */
+    private void validateCapsuleAssignEvent(SkillCapsuleEvent event) {
+        log.debug("Validating capsule.assign event: {}", event);
+
+        // Basic event validation
+        if (event == null) {
+            throw new SkillCapsuleProcessingException("Capsule assign event cannot be null");
+        }
+
+        if (event.getId() == null) {
+            throw new SkillCapsuleProcessingException("Capsule assign event must contain a valid capsule ID");
+        }
+
+        // For assign operation, skillAtom mappings are required
+        if (event.getSkillAtom() == null || event.getSkillAtom().isEmpty()) {
+            throw new CapsuleAtomMappingException("Capsule assign event must contain at least one skill atom mapping");
+        }
+
+        // Validate atom mappings structure
+        validateSkillAtomMappings(event.getSkillAtom(), event.getId());
+
+        log.debug("Capsule assign event validation successful for capsuleId: {}", event.getId());
+    }
+
 }

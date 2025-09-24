@@ -17,8 +17,7 @@ public interface GrowthTrackSnapshotService {
     GrowthTrackSnapshot updateGrowthTrack(GrowthTrackSnapshot existingTrack, GrowthTrackEvent event);
     void smartUpdateTrackCapsuleMappings(GrowthTrackSnapshot track, List<Map<UUID, Integer>> skillCapsuleMappings);
     Optional<GrowthTrackSnapshot> findByGrowthTrackId(UUID growthTrackId);
-    boolean existsByGrowthTrackId(UUID growthTrackId);
-    Optional<GrowthTrackSnapshot> findByGrowthTrackIdWithCapsuleMappings(UUID growthTrackId);
+    GrowthTrackSnapshot  assignCapsulesToTrack(GrowthTrackEvent event);
 
 
     PaginatedResponseDto<GrowthTrackResponseDto> findAllBasic(Pageable pageable);

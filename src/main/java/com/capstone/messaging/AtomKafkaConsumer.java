@@ -110,4 +110,44 @@ public class AtomKafkaConsumer {
                     atomId, dltException);
         }
     }
+
+    @KafkaListener(topics = "${KAFKA_ATOM_UPDATE_TOPIC:atom.update}")
+    @Retryable(
+            retryFor = {SkillAtomProcessingException.class, Exception.class},
+            backoff = @Backoff(delay = 1000, multiplier = 2)
+    )
+    public void listenAtomUpdate(
+            @Payload SkillAtomEvent event,
+            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+            @Header(KafkaHeaders.OFFSET) long offset,
+            Acknowledgment acknowledgment) {
+
+        log.info("Received atom.update event from topic: {}, partition: {}, offset: {}, atomId: {}",
+                topic, partition, offset, event.getId());
+
+        try {
+            // Validate event
+            validateSkillAtomEvent(event);
+
+            // Process the skill atom update using existing service logic
+            SkillAtomSnapshot updatedAtom = skillAtomSnapshotService.processSkillAtomEvent(event);
+
+            log.info("Successfully updated skill atom for atomId: {}, internal ID: {}",
+                    event.getId(), updatedAtom.getId());
+
+            // Acknowledge message only after successful processing
+            acknowledgment.acknowledge();
+
+        } catch (SkillAtomProcessingException e) {
+            log.error("Failed to update skill atom for atomId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment);
+
+        } catch (Exception e) {
+            log.error("Unexpected error updating skill atom for atomId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment);
+        }
+    }
 }

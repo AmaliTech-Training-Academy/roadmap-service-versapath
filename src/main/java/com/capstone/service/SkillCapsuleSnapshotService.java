@@ -13,16 +13,13 @@ import java.util.UUID;
 
 public interface SkillCapsuleSnapshotService {
 
-    // ===== EXISTING KAFKA/PROCESSING METHODS =====
     SkillCapsuleSnapshot processSkillCapsuleEvent(SkillCapsuleEvent event);
     SkillCapsuleSnapshot createSkillCapsule(SkillCapsuleEvent event);
     SkillCapsuleSnapshot updateSkillCapsule(SkillCapsuleSnapshot existingCapsule, SkillCapsuleEvent event);
     void smartUpdateCapsuleAtomMappings(SkillCapsuleSnapshot capsule, List<Map<UUID, Integer>> skillAtomMappings);
     Optional<SkillCapsuleSnapshot> findBySkillCapsuleId(UUID skillCapsuleId);
-    boolean existsBySkillCapsuleId(UUID skillCapsuleId);
-    Optional<SkillCapsuleSnapshot> findBySkillCapsuleIdWithAtomMappings(UUID skillCapsuleId);
+    SkillCapsuleSnapshot assignAtomsToCapsule(SkillCapsuleEvent event);
 
-    // ===== NEW CLEAN DTO-BASED METHODS =====
     PaginatedResponseDto<SkillCapsuleResponseDto> findAllBasic(Pageable pageable);
     PaginatedResponseDto<SkillCapsuleResponseDto> findAllWithAtomSummaries(Pageable pageable);
     PaginatedResponseDto<SkillCapsuleResponseDto> searchByCapsuleNameBasic(String capsuleName, Pageable pageable);

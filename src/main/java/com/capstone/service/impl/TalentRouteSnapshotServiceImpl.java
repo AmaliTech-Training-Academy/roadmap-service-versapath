@@ -38,7 +38,10 @@ public class TalentRouteSnapshotServiceImpl implements TalentRouteSnapshotServic
     private final GrowthTrackSnapshotService growthTrackSnapshotService;
 
     @Override
-    @CacheEvict(value = {"talent-routes", "talent-routes-with-tracks", "talent-routes-search", "talent-route-single"}, allEntries = true)
+    @CacheEvict(value = {
+            "talent-routes", "talent-routes-with-tracks", "talent-routes-search", "talent-route-single",
+            "growth-tracks-with-capsules", "growth-track-single"
+    }, allEntries = true)
     public TalentRouteSnapshot processTalentRouteEvent(TalentRouteEvent event) {
         log.info("Processing talent route event for routeId: {}", event.getId());
 
@@ -217,6 +220,47 @@ public class TalentRouteSnapshotServiceImpl implements TalentRouteSnapshotServic
         // Add new mappings
         if (!analysis.getToAdd().isEmpty()) {
             route.getRouteTrackMappings().addAll(analysis.getToAdd());
+        }
+    }
+
+    @CacheEvict(value = {"talent-routes", "talent-routes-with-tracks", "talent-routes-search", "talent-route-single"}, allEntries = true)
+    public TalentRouteSnapshot assignTracksToRoute(TalentRouteEvent event) {
+        log.info("Assigning tracks to talent route for routeId: {}", event.getId());
+
+        try {
+            // Find existing talent route WITH track mappings - prevents lazy initialization error
+            Optional<TalentRouteSnapshot> existingRoute = talentRouteSnapshotRepository.findByTalentRouteIdWithTrackMappings(event.getId());
+
+            if (existingRoute.isEmpty()) {
+                throw new TalentRouteNotFoundException(event.getId());
+            }
+
+            TalentRouteSnapshot route = existingRoute.get();
+            log.info("Found existing talent route for assignment: {} with {} existing track mappings",
+                    route.getTalentRouteId(), route.getRouteTrackMappings().size());
+
+            // Use existing smart update logic to assign tracks
+            if (event.getGrowthTracks() != null && !event.getGrowthTracks().isEmpty()) {
+                smartUpdateRouteTrackMappings(route, event.getGrowthTracks());
+
+                // Save the updated route
+                TalentRouteSnapshot updatedRoute = talentRouteSnapshotRepository.save(route);
+
+                log.info("Successfully assigned {} tracks to talent route {}, total mappings now: {}",
+                        event.getGrowthTracks().size(), updatedRoute.getTalentRouteId(),
+                        updatedRoute.getRouteTrackMappings().size());
+
+                return updatedRoute;
+            } else {
+                throw new RouteTrackMappingException("No growth track mappings provided for assignment");
+            }
+
+        } catch (TalentRouteNotFoundException e) {
+            log.error("Talent route not found for assignment with ID: {}", event.getId(), e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error assigning tracks to talent route with ID: {}", event.getId(), e);
+            throw new TalentRouteProcessingException("Failed to assign tracks to talent route", e);
         }
     }
 

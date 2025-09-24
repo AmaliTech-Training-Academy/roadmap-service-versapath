@@ -2,6 +2,7 @@ package com.capstone.messaging;
 
 import com.capstone.exception.GrowthTrackNotFoundException;
 import com.capstone.exception.RouteTrackMappingException;
+import com.capstone.exception.TalentRouteNotFoundException;
 import com.capstone.exception.TalentRouteProcessingException;
 import com.capstone.model.TalentRouteSnapshot;
 import com.capstone.service.TalentRouteSnapshotService;
@@ -68,22 +69,22 @@ public class TalentRouteKafkaConsumer {
         } catch (TalentRouteProcessingException e) {
             log.error("Failed to process talent route event for routeId: {}. Error: {}",
                     event.getId(), e.getMessage(), e);
-            handleProcessingFailure(event, acknowledgment);
+            handleProcessingFailure(event, acknowledgment, "CREATE");
 
         } catch (RouteTrackMappingException e) {
             log.error("Failed to process route-track mappings for routeId: {}. Error: {}",
                     event.getId(), e.getMessage(), e);
-            handleProcessingFailure(event, acknowledgment);
+            handleProcessingFailure(event, acknowledgment, "CREATE");
 
         } catch (GrowthTrackNotFoundException e) {
             log.error("Missing growth track reference for routeId: {}. Error: {}",
                     event.getId(), e.getMessage(), e);
-            handleProcessingFailure(event, acknowledgment);
+            handleProcessingFailure(event, acknowledgment, "CREATE");
 
         } catch (Exception e) {
             log.error("Unexpected error processing talent route event for routeId: {}. Error: {}",
                     event.getId(), e.getMessage(), e);
-            handleProcessingFailure(event, acknowledgment);
+            handleProcessingFailure(event, acknowledgment, "CREATE");
         }
     }
 
@@ -172,20 +173,30 @@ public class TalentRouteKafkaConsumer {
     /**
      * Handle processing failures with DLT support
      */
-    private void handleProcessingFailure(TalentRouteEvent event, Acknowledgment acknowledgment) {
+    private void handleProcessingFailure(TalentRouteEvent event, Acknowledgment acknowledgment, String operationType) {
         String routeId = event.getId().toString();
 
-        log.error("Processing failed for talent route event with routeId: {}. Sending to DLT topic: {}",
-                routeId, talentRouteDltTopic);
+        log.error("Processing failed for talent route {} operation with routeId: {}. Sending to DLT topic: {}",
+                operationType, routeId, talentRouteDltTopic);
 
         try {
+            // Create enhanced event with operation type for DLT analysis
+            Map<String, Object> dltPayload = Map.of(
+                    "originalEvent", event,
+                    "operationType", operationType,
+                    "failureTimestamp", System.currentTimeMillis(),
+                    "routeId", routeId
+            );
+
             // Send to Dead Letter Topic for manual review/reprocessing
-            kafkaTemplate.send(talentRouteDltTopic, routeId, event)
+            kafkaTemplate.send(talentRouteDltTopic, routeId, dltPayload)
                     .whenComplete((result, ex) -> {
                         if (ex == null) {
-                            log.info("Successfully sent failed talent route event to DLT for routeId: {}", routeId);
+                            log.info("Successfully sent failed talent route {} event to DLT for routeId: {}",
+                                    operationType, routeId);
                         } else {
-                            log.error("Failed to send talent route event to DLT for routeId: {}", routeId, ex);
+                            log.error("Failed to send talent route {} event to DLT for routeId: {}",
+                                    operationType, routeId, ex);
                         }
                     });
 
@@ -193,8 +204,138 @@ public class TalentRouteKafkaConsumer {
             acknowledgment.acknowledge();
 
         } catch (Exception dltException) {
-            log.error("Critical: Failed to send talent route message to DLT for routeId: {}. Message will be retried by Kafka",
-                    routeId, dltException);
+            log.error("Critical: Failed to send talent route {} message to DLT for routeId: {}. Message will be retried by Kafka",
+                    operationType, routeId, dltException);
         }
+    }
+
+    @KafkaListener(topics = "${KAFKA_TALENT_ROUTE_UPDATE_TOPIC:talentRoute.update}")
+    @Retryable(
+            retryFor = {TalentRouteProcessingException.class, RouteTrackMappingException.class, GrowthTrackNotFoundException.class,
+                    Exception.class},
+            backoff = @Backoff(delay = 1000, multiplier = 2)
+    )
+    public void listenTalentRouteUpdate(
+            @Payload TalentRouteEvent event,
+            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+            @Header(KafkaHeaders.OFFSET) long offset,
+            Acknowledgment acknowledgment) {
+
+        log.info("Received talentRoute.update event from topic: {}, partition: {}, offset: {}, routeId: {}",
+                topic, partition, offset, event.getId());
+
+        try {
+            // Validate event
+            validateTalentRouteEvent(event);
+
+            // Process the talent route update using existing service logic
+            TalentRouteSnapshot updatedRoute = talentRouteSnapshotService.processTalentRouteEvent(event);
+
+            log.info("Successfully updated talent route for routeId: {}, internal ID: {}, tracks: {}",
+                    event.getId(), updatedRoute.getId(),
+                    event.getGrowthTracks() != null ? event.getGrowthTracks().size() : 0);
+
+            // Acknowledge message only after successful processing
+            acknowledgment.acknowledge();
+
+        } catch (TalentRouteProcessingException e) {
+            log.error("Failed to update talent route for routeId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "UPDATE");
+
+        } catch (RouteTrackMappingException e) {
+            log.error("Failed to update route-track mappings for routeId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "UPDATE");
+
+        } catch (GrowthTrackNotFoundException e) {
+            log.error("Missing growth track reference during route update for routeId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "UPDATE");
+
+        } catch (Exception e) {
+            log.error("Unexpected error updating talent route for routeId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "UPDATE");
+        }
+    }
+
+    @KafkaListener(topics = "${KAFKA_TALENT_ROUTE_ASSIGN_TOPIC:talentRoute.assign}")
+    @Retryable(
+            retryFor = {TalentRouteProcessingException.class, RouteTrackMappingException.class, GrowthTrackNotFoundException.class,
+                    Exception.class},
+            backoff = @Backoff(delay = 1000, multiplier = 2)
+    )
+    public void listenTalentRouteAssign(
+            @Payload TalentRouteEvent event,
+            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+            @Header(KafkaHeaders.OFFSET) long offset,
+            Acknowledgment acknowledgment) {
+
+        log.info("Received talentRoute.assign event from topic: {}, partition: {}, offset: {}, routeId: {}",
+                topic, partition, offset, event.getId());
+
+        try {
+            // Validate talent route assign event
+            validateTalentRouteAssignEvent(event);
+
+            // Process track assignment to existing talent route
+            TalentRouteSnapshot updatedRoute = talentRouteSnapshotService.assignTracksToRoute(event);
+
+            log.info("Successfully assigned tracks to talent route for routeId: {}, internal ID: {}, tracks: {}",
+                    event.getId(), updatedRoute.getId(),
+                    event.getGrowthTracks() != null ? event.getGrowthTracks().size() : 0);
+
+            // Acknowledge message only after successful processing
+            acknowledgment.acknowledge();
+
+        } catch (TalentRouteNotFoundException e) {
+            log.error("Talent route not found for assignment, routeId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "ASSIGN");
+
+        } catch (RouteTrackMappingException e) {
+            log.error("Failed to assign route-track mappings for routeId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "ASSIGN");
+
+        } catch (GrowthTrackNotFoundException e) {
+            log.error("Missing growth track reference during route assignment for routeId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "ASSIGN");
+
+        } catch (Exception e) {
+            log.error("Unexpected error assigning tracks to talent route for routeId: {}. Error: {}",
+                    event.getId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment, "ASSIGN");
+        }
+    }
+
+    /**
+     * Validate talentRoute.assign event - focuses on track mappings only
+     */
+    private void validateTalentRouteAssignEvent(TalentRouteEvent event) {
+        log.debug("Validating talentRoute.assign event: {}", event);
+
+        // Basic event validation
+        if (event == null) {
+            throw new TalentRouteProcessingException("Talent route assign event cannot be null");
+        }
+
+        if (event.getId() == null) {
+            throw new TalentRouteProcessingException("Talent route assign event must contain a valid route ID");
+        }
+
+        // For assign operation, growthTracks mappings are required
+        if (event.getGrowthTracks() == null || event.getGrowthTracks().isEmpty()) {
+            throw new RouteTrackMappingException("Talent route assign event must contain at least one growth track mapping");
+        }
+
+        // Validate track mappings structure
+        validateGrowthTrackMappings(event.getGrowthTracks(), event.getId());
+
+        log.debug("Talent route assign event validation successful for routeId: {}", event.getId());
     }
 }

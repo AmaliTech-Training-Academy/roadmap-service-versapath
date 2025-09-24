@@ -34,12 +34,15 @@ public class SkillAtomSnapshotServiceImpl implements SkillAtomSnapshotService {
     private final SkillAtomMapper skillAtomMapper;
 
     @Override
-    @CacheEvict(value = {"skill-atoms", "skill-atoms-search", "skill-atom-single"}, allEntries = true)
+    @CacheEvict(value = {
+            "skill-atoms", "skill-atoms-search", "skill-atom-single",
+            "skill-capsules-with-atoms", "skill-capsule-single"
+    }, allEntries = true)
     public SkillAtomSnapshot processSkillAtomEvent(SkillAtomEvent event) {
         log.info("Processing skill atom event for skillAtomId: {}", event.getId());
 
         try {
-            Optional<SkillAtomSnapshot> existingSkillAtom = findBySkillAtomId(event.getId());
+            Optional<SkillAtomSnapshot> existingSkillAtom = skillAtomSnapshotRepository.findBySkillAtomId(event.getId());
 
             if (existingSkillAtom.isPresent()) {
                 log.info("Skill atom exists, updating skill atom with ID: {}", event.getId());

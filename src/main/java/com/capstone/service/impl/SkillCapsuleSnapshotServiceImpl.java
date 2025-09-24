@@ -38,7 +38,9 @@ public class SkillCapsuleSnapshotServiceImpl implements SkillCapsuleSnapshotServ
     private final SkillAtomSnapshotService skillAtomSnapshotService;
 
     @Override
-    @CacheEvict(value = {"skill-capsules", "skill-capsules-with-atoms", "skill-capsules-search", "skill-capsule-single"}, allEntries = true)
+    @CacheEvict(value = {"skill-capsules", "skill-capsules-with-atoms", "skill-capsules-search",
+            "skill-capsule-single", "growth-tracks-with-capsules", "growth-track-single"
+    }, allEntries = true)
     public SkillCapsuleSnapshot processSkillCapsuleEvent(SkillCapsuleEvent event) {
         log.info("Processing skill capsule event for capsuleId: {}", event.getId());
 
@@ -144,6 +146,48 @@ public class SkillCapsuleSnapshotServiceImpl implements SkillCapsuleSnapshotServ
         }
     }
 
+    @Override
+    @CacheEvict(value = {"skill-capsules", "skill-capsules-with-atoms", "skill-capsules-search", "skill-capsule-single"}, allEntries = true)
+    public SkillCapsuleSnapshot assignAtomsToCapsule(SkillCapsuleEvent event) {
+        log.info("Assigning atoms to capsule for capsuleId: {}", event.getId());
+
+        try {
+            // Find existing capsule WITH atom mappings - prevents lazy initialization error
+            Optional<SkillCapsuleSnapshot> existingCapsule = skillCapsuleSnapshotRepository.findBySkillCapsuleIdWithAtomMappings(event.getId());
+
+            if (existingCapsule.isEmpty()) {
+                throw new SkillCapsuleNotFoundException(event.getId());
+            }
+
+            SkillCapsuleSnapshot capsule = existingCapsule.get();
+            log.info("Found existing capsule for assignment: {} with {} existing atom mappings",
+                    capsule.getSkillCapsuleId(), capsule.getCapsuleAtomMappings().size());
+
+            // Use existing smart update logic to assign atoms
+            if (event.getSkillAtom() != null && !event.getSkillAtom().isEmpty()) {
+                smartUpdateCapsuleAtomMappings(capsule, event.getSkillAtom());
+
+                // Save the updated capsule
+                SkillCapsuleSnapshot updatedCapsule = skillCapsuleSnapshotRepository.save(capsule);
+
+                log.info("Successfully assigned {} atoms to capsule {}, total mappings now: {}",
+                        event.getSkillAtom().size(), updatedCapsule.getSkillCapsuleId(),
+                        updatedCapsule.getCapsuleAtomMappings().size());
+
+                return updatedCapsule;
+            } else {
+                throw new CapsuleAtomMappingException("No skill atom mappings provided for assignment");
+            }
+
+        } catch (SkillCapsuleNotFoundException e) {
+            log.error("Capsule not found for assignment with ID: {}", event.getId(), e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error assigning atoms to capsule with ID: {}", event.getId(), e);
+            throw new SkillCapsuleProcessingException("Failed to assign atoms to capsule", e);
+        }
+    }
+
     /**
      * Verify all atoms exist and parse into structured format
      */
@@ -234,20 +278,6 @@ public class SkillCapsuleSnapshotServiceImpl implements SkillCapsuleSnapshotServ
     public Optional<SkillCapsuleSnapshot> findBySkillCapsuleId(UUID skillCapsuleId) {
         log.debug("Finding capsule by skillCapsuleId: {}", skillCapsuleId);
         return skillCapsuleSnapshotRepository.findBySkillCapsuleId(skillCapsuleId);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public boolean existsBySkillCapsuleId(UUID skillCapsuleId) {
-        log.debug("Checking if capsule exists by skillCapsuleId: {}", skillCapsuleId);
-        return skillCapsuleSnapshotRepository.existsBySkillCapsuleId(skillCapsuleId);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Optional<SkillCapsuleSnapshot> findBySkillCapsuleIdWithAtomMappings(UUID skillCapsuleId) {
-        log.debug("Finding capsule with atom mappings by skillCapsuleId: {}", skillCapsuleId);
-        return skillCapsuleSnapshotRepository.findBySkillCapsuleIdWithAtomMappings(skillCapsuleId);
     }
 
     @Override

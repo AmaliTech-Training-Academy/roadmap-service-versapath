@@ -38,7 +38,10 @@ public class GrowthTrackSnapshotServiceImpl implements GrowthTrackSnapshotServic
     private final SkillCapsuleSnapshotService skillCapsuleSnapshotService;
 
     @Override
-    @CacheEvict(value = {"growth-tracks", "growth-tracks-with-capsules", "growth-tracks-search", "growth-track-single"}, allEntries = true)
+    @CacheEvict(value = {
+            "growth-tracks", "growth-tracks-with-capsules", "growth-tracks-search", "growth-track-single",
+            "skill-capsules-with-atoms", "skill-capsule-single",  "talent-routes-with-tracks", "talent-route-single"
+    }, allEntries = true)
     public GrowthTrackSnapshot processGrowthTrackEvent(GrowthTrackEvent event) {
         log.info("Processing growth track event for trackId: {}", event.getId());
 
@@ -220,26 +223,54 @@ public class GrowthTrackSnapshotServiceImpl implements GrowthTrackSnapshotServic
         }
     }
 
+    @Override
+    @CacheEvict(value = {"growth-tracks", "growth-tracks-with-capsules", "growth-tracks-search", "growth-track-single"}, allEntries = true)
+    public GrowthTrackSnapshot assignCapsulesToTrack(GrowthTrackEvent event) {
+        log.info("Assigning capsules to growth track for trackId: {}", event.getId());
+
+        try {
+            // Find existing growth track WITH capsule mappings - prevents lazy initialization error
+            Optional<GrowthTrackSnapshot> existingTrack = growthTrackSnapshotRepository.findByGrowthTrackIdWithCapsuleMappings(event.getId());
+
+            if (existingTrack.isEmpty()) {
+                throw new GrowthTrackNotFoundException(event.getId());
+            }
+
+            GrowthTrackSnapshot track = existingTrack.get();
+            log.info("Found existing growth track for assignment: {} with {} existing capsule mappings",
+                    track.getGrowthTrackId(), track.getTrackCapsuleMappings().size());
+
+            // Use existing smart update logic to assign capsules
+            if (event.getSkillCapsules() != null && !event.getSkillCapsules().isEmpty()) {
+                smartUpdateTrackCapsuleMappings(track, event.getSkillCapsules());
+
+                // Save the updated track
+                GrowthTrackSnapshot updatedTrack = growthTrackSnapshotRepository.save(track);
+
+                log.info("Successfully assigned {} capsules to growth track {}, total mappings now: {}",
+                        event.getSkillCapsules().size(), updatedTrack.getGrowthTrackId(),
+                        updatedTrack.getTrackCapsuleMappings().size());
+
+                return updatedTrack;
+            } else {
+                throw new TrackCapsuleMappingException("No skill capsule mappings provided for assignment");
+            }
+
+        } catch (GrowthTrackNotFoundException e) {
+            log.error("Growth track not found for assignment with ID: {}", event.getId(), e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error assigning capsules to growth track with ID: {}", event.getId(), e);
+            throw new GrowthTrackProcessingException("Failed to assign capsules to growth track", e);
+        }
+    }
+
 
     @Override
     @Transactional(readOnly = true)
     public Optional<GrowthTrackSnapshot> findByGrowthTrackId(UUID growthTrackId) {
         log.debug("Finding track by growthTrackId: {}", growthTrackId);
         return growthTrackSnapshotRepository.findByGrowthTrackId(growthTrackId);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public boolean existsByGrowthTrackId(UUID growthTrackId) {
-        log.debug("Checking if track exists by growthTrackId: {}", growthTrackId);
-        return growthTrackSnapshotRepository.existsByGrowthTrackId(growthTrackId);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Optional<GrowthTrackSnapshot> findByGrowthTrackIdWithCapsuleMappings(UUID growthTrackId) {
-        log.debug("Finding track with capsule mappings by growthTrackId: {}", growthTrackId);
-        return growthTrackSnapshotRepository.findByGrowthTrackIdWithCapsuleMappings(growthTrackId);
     }
 
     @Override

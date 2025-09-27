@@ -68,6 +68,41 @@ public class UserKafkaConsumer {
         }
     }
 
+    @KafkaListener(topics = "${KAFKA_USER_UPDATE_TOPIC:user.update}")
+    @Retryable(
+            retryFor = {UserProcessingException.class, Exception.class},
+            backoff = @Backoff(delay = 1000, multiplier = 2)
+    )
+    public void listenUserUpdate(
+            @Payload ProduceUserEvent event,
+            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+            @Header(KafkaHeaders.OFFSET) long offset,
+            Acknowledgment acknowledgment) {
+
+        log.info("Received user.update event from topic: {}, partition: {}, offset: {}, userId: {}",
+                topic, partition, offset, event.getVersapathUserId());
+
+        try {
+            validateUserEvent(event);
+            UserSnapshot updatedUser = userSnapshotService.processUserEvent(event);
+
+            log.info("Successfully updated user for userId: {}, internal ID: {}",
+                    event.getVersapathUserId(), updatedUser.getId());
+
+            acknowledgment.acknowledge();
+
+        } catch (UserProcessingException e) {
+            log.error("Failed to update user for userId: {}. Error: {}",
+                    event.getVersapathUserId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment);
+        } catch (Exception e) {
+            log.error("Unexpected error updating user for userId: {}. Error: {}",
+                    event.getVersapathUserId(), e.getMessage(), e);
+            handleProcessingFailure(event, acknowledgment);
+        }
+    }
+
     private void validateUserEvent(ProduceUserEvent event) {
         log.debug("Validating user event: {}", event);
 

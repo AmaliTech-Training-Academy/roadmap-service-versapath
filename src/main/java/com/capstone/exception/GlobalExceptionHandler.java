@@ -237,4 +237,34 @@ public class GlobalExceptionHandler {
                 .body(ApiResponseDto.error(ex.getMessage(), "Lesson Exception"));
     }
 
+    // Mentor Exception
+
+    @ExceptionHandler(MentorProcessingException.class)
+    public ResponseEntity<ApiResponseDto<String>> handleMentorProcessingException(MentorProcessingException ex) {
+        log.error("Mentor processing error: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponseDto.error(ex.getMessage(), "Mentor processing failed"));
+    }
+
+    @ExceptionHandler(MentorRouteMappingException.class)
+    public ResponseEntity<ApiResponseDto<String>> handleMentorRouteMappingException(MentorRouteMappingException ex) {
+        log.error("Mentor route mapping error: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponseDto.error(ex.getMessage(), "Mentor specialization mapping failed"));
+    }
+
+    @ExceptionHandler(MentorNotFoundException.class)
+    public ResponseEntity<ApiResponseDto<String>> handleMentorNotFoundException(MentorNotFoundException ex) {
+        log.error("Mentor not found: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponseDto.error(ex.getMessage(), "Mentor not found"));
+    }
+
+    @ExceptionHandler(DuplicateMentorException.class)
+    public ResponseEntity<ApiResponseDto<String>> handleDuplicateMentorException(DuplicateMentorException ex) {
+        log.error("Duplicate mentor: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponseDto.error(ex.getMessage(), "Mentor already exists"));
+    }
+
 }

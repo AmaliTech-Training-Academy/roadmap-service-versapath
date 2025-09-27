@@ -29,7 +29,7 @@ public class UserSnapshotServiceImpl implements UserSnapshotService {
         log.info("Processing user event for userId: {}", event.getVersapathUserId());
 
         try {
-            Optional<UserSnapshot> existingUser = findByUserId(event.getVersapathUserId());
+            Optional<UserSnapshot> existingUser = userSnapshotRepository.findByUserId(event.getVersapathUserId());
 
             if (existingUser.isPresent()) {
                 log.info("User exists, updating user with ID: {}", event.getVersapathUserId());

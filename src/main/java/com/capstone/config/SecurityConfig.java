@@ -45,6 +45,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/roadmap/growth-tracks/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/roadmap/skill-capsules/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/roadmap/skill-atoms/**").hasRole("ADMIN")
+                .requestMatchers("/api/v1/roadmap/mentors/**").hasRole("ADMIN")
 
                 // Mixed access endpoints (roadmap operations)
                 .requestMatchers("/api/v1/roadmap").hasAnyRole("ADMIN", "LEARNER")
@@ -53,7 +54,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/roadmap/recalculate-progress").hasAnyRole("ADMIN", "LEARNER")
 
                 // Learner-only endpoints (learner view)
-                .requestMatchers("/api/v1/learner/**").hasAnyRole("ADMIN","LEARNER")
+                .requestMatchers("/api/v1/learner/**").hasRole("LEARNER")
 
                 // Any other request requires authentication
                 .anyRequest().authenticated()

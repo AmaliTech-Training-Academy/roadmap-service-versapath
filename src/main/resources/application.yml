@@ -66,3 +66,4 @@ app:
     capsule-dlt-topic: ${KAFKA_CAPSULE_DLT_TOPIC}
     growthTrack-dlt-topic: ${KAFKA_GROWTH_TRACK_DLT_TOPIC}
     talentRoute-dlt-topic: ${KAFKA_TALENT_ROUTE_DLT_TOPIC}
+    mentor-dlt-topic: ${KAFKA_MENTOR_DLT_TOPIC}

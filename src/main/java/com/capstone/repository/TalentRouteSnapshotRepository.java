@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,7 +18,8 @@ public interface TalentRouteSnapshotRepository extends JpaRepository<TalentRoute
 
     Optional<TalentRouteSnapshot> findByTalentRouteId(UUID talentRouteId);
 
-    boolean existsByTalentRouteId(UUID talentRouteId);
+    @Query("SELECT t FROM TalentRouteSnapshot t WHERE t.talentRouteId IN :routeIds")
+    List<TalentRouteSnapshot> findByTalentRouteIdIn(@Param("routeIds") Collection<UUID> routeIds);
 
     @Query("SELECT DISTINCT tr FROM TalentRouteSnapshot tr " +
             "LEFT JOIN FETCH tr.routeTrackMappings rtm " +

@@ -188,18 +188,28 @@ public class MentorSnapshotServiceImpl implements MentorSnapshotService {
     }
 
     private List<TalentRouteSnapshot> verifySpecializationRoutes(List<UUID> specializationRouteIds) {
-        List<TalentRouteSnapshot> verifiedRoutes = new ArrayList<>();
-
-        for (UUID routeId : specializationRouteIds) {
-            // Use TalentRouteSnapshotService to verify route exists
-            Optional<TalentRouteSnapshot> route = talentRouteSnapshotService.findByTalentRouteId(routeId);
-            if (route.isEmpty()) {
-                throw new TalentRouteNotFoundException(routeId);
-            }
-            verifiedRoutes.add(route.get());
+        if (specializationRouteIds == null || specializationRouteIds.isEmpty()) {
+            return new ArrayList<>();
         }
 
-        return verifiedRoutes;
+        // Single query to get all existing routes
+        List<TalentRouteSnapshot> existingRoutes = talentRouteSnapshotService.findByTalentRouteIds(specializationRouteIds);
+
+        // Create a set of found route IDs for quick lookup
+        Set<UUID> foundRouteIds = existingRoutes.stream()
+                .map(TalentRouteSnapshot::getTalentRouteId)
+                .collect(Collectors.toSet());
+
+        // Check if any routes are missing
+        List<UUID> missingRouteIds = specializationRouteIds.stream()
+                .filter(routeId -> !foundRouteIds.contains(routeId))
+                .toList();
+
+        if (!missingRouteIds.isEmpty()) {
+            throw new TalentRouteNotFoundException("Missing routes: " + missingRouteIds);
+        }
+
+        return existingRoutes;
     }
 
     private UpdateAnalysis analyzeMentorRouteChanges(MentorSnapshot mentor, List<TalentRouteSnapshot> newRoutes) {

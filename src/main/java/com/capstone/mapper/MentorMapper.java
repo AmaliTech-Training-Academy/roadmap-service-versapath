@@ -14,11 +14,13 @@ public interface MentorMapper {
 
     @Mapping(source = "mentorId", target = "mentorId")
     @Mapping(source = "id", target = "id")
+    @Mapping(source = "assignedLearner", target = "totalAssignedLearners")
     @Mapping(target = "specializations", ignore = true)
     MentorResponseDto toBasicResponseDto(MentorSnapshot mentorSnapshot);
 
     @Mapping(source = "mentorId", target = "mentorId")
     @Mapping(source = "id", target = "id")
+    @Mapping(source = "assignedLearner", target = "totalAssignedLearners")
     @Mapping(source = "mentorRouteMappings", target = "specializations")
     MentorResponseDto toResponseDtoWithSpecializations(MentorSnapshot mentorSnapshot);
 
@@ -28,7 +30,5 @@ public interface MentorMapper {
     @Mapping(source = "talentRoute.description", target = "routeDescription")
     @Mapping(source = "createdAt", target = "assignedAt")
     MentorSpecializationDto toSpecializationDto(MentorRouteMapping mentorRouteMapping);
-
-    List<MentorSpecializationDto> toSpecializationDtoList(List<MentorRouteMapping> mentorRouteMappings);
 
 }

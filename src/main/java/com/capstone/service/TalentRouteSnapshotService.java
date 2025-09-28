@@ -6,10 +6,7 @@ import com.capstone.model.TalentRouteSnapshot;
 import org.common.event.TalentRouteEvent;
 import org.springframework.data.domain.Pageable;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 public interface TalentRouteSnapshotService {
     TalentRouteSnapshot processTalentRouteEvent(TalentRouteEvent event);
@@ -18,6 +15,7 @@ public interface TalentRouteSnapshotService {
     void smartUpdateRouteTrackMappings(TalentRouteSnapshot route, List<Map<UUID, Integer>> growthTrackMappings);
     TalentRouteSnapshot assignTracksToRoute(TalentRouteEvent event);
     Optional<TalentRouteSnapshot> findByTalentRouteId(UUID talentRouteId);
+    List<TalentRouteSnapshot> findByTalentRouteIds(Collection<UUID> talentRouteIds);
 
 
     PaginatedResponseDto<TalentRouteResponseDto> findAllBasic(Pageable pageable);

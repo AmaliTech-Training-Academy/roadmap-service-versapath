@@ -272,6 +272,12 @@ public class TalentRouteSnapshotServiceImpl implements TalentRouteSnapshotServic
 
     @Override
     @Transactional(readOnly = true)
+    public List<TalentRouteSnapshot> findByTalentRouteIds(Collection<UUID> talentRouteIds) {
+        return talentRouteSnapshotRepository.findByTalentRouteIdIn(talentRouteIds);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     @Cacheable(value = "talent-routes", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public PaginatedResponseDto<TalentRouteResponseDto> findAllBasic(Pageable pageable) {
         log.debug("Finding all talent routes (basic) with pagination: page={}, size={}",

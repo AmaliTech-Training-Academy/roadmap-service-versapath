@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,7 +21,6 @@ public class MentorResponseDto {
     private String username;
     private String firstName;
     private String lastName;
-    private String fullName;
-    private Integer assignedLearner;
+    private Integer totalAssignedLearners;
     private List<MentorSpecializationDto> specializations;
 }

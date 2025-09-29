@@ -14,9 +14,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -289,13 +291,29 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
     }
 
     private void assignLearnerToMentor(RoadmapRequestDto roadmapRequestDto){
+        MentorSnapshot mentor = selectMentorToAssign(roadmapRequestDto);
+
+        //TODO: assign learner to a mentor
+    }
+
+    private MentorSnapshot selectMentorToAssign(RoadmapRequestDto roadmapRequestDto){
         List<MentorSnapshot> mentors = mentorRouteMappingRepository.findMentorsByTalentRouteId(roadmapRequestDto.getTalentRouteId());
 
         if (mentors.isEmpty()) {
             throw new MentorNotAvailableException("The Talent route provided has no mentor assigned to");
         }
 
-        //TODO: find the mentor who has the minimum number of learners
+        int minLearnerNumber = mentors.stream()
+                .mapToInt(MentorSnapshot::getAssignedLearner)
+                .min()
+                .getAsInt();
 
+        // Get all mentors with the same minimum number learners
+        List<MentorSnapshot> mentorsWithMinLearners = mentors.stream()
+                .filter(mentor -> mentor.getAssignedLearner() == minLearnerNumber)
+                .toList();
+
+        // select the first mentor
+        return mentorsWithMinLearners.getFirst();
     }
 }

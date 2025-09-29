@@ -267,4 +267,11 @@ public class GlobalExceptionHandler {
                 .body(ApiResponseDto.error(ex.getMessage(), "Mentor already exists"));
     }
 
+    @ExceptionHandler(MentorNotAvailableException.class)
+    public ResponseEntity<ApiResponseDto<String>> handleMentorNotAvailableException(MentorNotAvailableException ex) {
+        log.error("Mentor not available for the talent route: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponseDto.error(ex.getMessage(), "Mentor not available for the talent route"));
+    }
+
 }

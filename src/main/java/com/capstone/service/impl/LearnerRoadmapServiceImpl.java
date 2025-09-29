@@ -5,12 +5,7 @@ import com.capstone.dto.response.LearnerAtomProgressDto;
 import com.capstone.dto.response.LearnerCapsuleProgressDto;
 import com.capstone.dto.response.LearnerRoadmapWithProgressDto;
 import com.capstone.dto.response.LearnerTrackProgressDto;
-import com.capstone.exception.GrowthTrackNotFoundException;
-import com.capstone.exception.RoadmapExistException;
-import com.capstone.exception.RoadmapNotFoundException;
-import com.capstone.exception.SkillCapsuleNotFoundException;
-import com.capstone.exception.TalentRouteNotFoundException;
-import com.capstone.exception.UserNotFoundException;
+import com.capstone.exception.*;
 import com.capstone.mapper.LearnerRoadmapViewMapper;
 import com.capstone.model.*;
 import com.capstone.repository.*;
@@ -37,6 +32,7 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
     private final LearnerTrackProgressRepository learnerTrackProgressRepository;
     private final LearnerCapsuleProgressRepository learnerCapsuleProgressRepository;
     private final LearnerRoadmapViewMapper mapper;
+    private final MentorRouteMappingRepository mentorRouteMappingRepository;
 
     @Transactional
     @Override
@@ -54,6 +50,9 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
         learnerRoadmap.setLearnerTrackProgresses(growthTrackProgresses); // map roadmap to growth track progress
 
         learnerRoadmapRepository.save(learnerRoadmap);
+
+        assignLearnerToMentor(roadmapRequestDto);
+
     }
 
     private LearnerRoadmap createLearnerRoadmap(UUID learnerId, UUID talentRouteId){
@@ -287,5 +286,16 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
                 return previousAtom.isCompleted();
             })
             .orElse(false);
+    }
+
+    private void assignLearnerToMentor(RoadmapRequestDto roadmapRequestDto){
+        List<MentorSnapshot> mentors = mentorRouteMappingRepository.findMentorsByTalentRouteId(roadmapRequestDto.getTalentRouteId());
+
+        if (mentors.isEmpty()) {
+            throw new MentorNotAvailableException("The Talent route provided has no mentor assigned to");
+        }
+
+        //TODO: find the mentor who has the minimum number of learners
+
     }
 }

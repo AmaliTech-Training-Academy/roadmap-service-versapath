@@ -14,11 +14,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +34,9 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
     private final LearnerCapsuleProgressRepository learnerCapsuleProgressRepository;
     private final LearnerRoadmapViewMapper mapper;
     private final MentorRouteMappingRepository mentorRouteMappingRepository;
+    private final MentorLearnerMappingRepository mentorLearnerMappingRepository;
+    private final MentorSnapshotRepository mentorSnapshotRepository;
+
 
     @Transactional
     @Override
@@ -292,8 +294,24 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
 
     private void assignLearnerToMentor(RoadmapRequestDto roadmapRequestDto){
         MentorSnapshot mentor = selectMentorToAssign(roadmapRequestDto);
+        UserSnapshot learner = userSnapshotRepository.findByUserId(roadmapRequestDto.getLearnerId())
+                .orElseThrow( () -> new UserNotFoundException("A learner provided doesn't exist")
+                );
 
-        //TODO: assign learner to a mentor
+        // assign learner to a mentor
+        MentorLearnerMapping mentorLearnerMapping = MentorLearnerMapping.builder()
+                        .mentor(mentor)
+                        .learner(learner)
+                        .createdAt(LocalDateTime.now())
+                        .updatedAt(LocalDateTime.now())
+                        .build();
+
+        mentorLearnerMappingRepository.save(mentorLearnerMapping);
+
+        // update number of learners assigned to mentor
+        mentor.setAssignedLearner(mentor.getAssignedLearner() + 1);
+        mentorSnapshotRepository.save(mentor);
+
     }
 
     private MentorSnapshot selectMentorToAssign(RoadmapRequestDto roadmapRequestDto){

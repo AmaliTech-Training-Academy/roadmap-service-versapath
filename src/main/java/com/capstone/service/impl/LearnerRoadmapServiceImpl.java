@@ -7,10 +7,14 @@ import com.capstone.dto.response.LearnerRoadmapWithProgressDto;
 import com.capstone.dto.response.LearnerTrackProgressDto;
 import com.capstone.exception.*;
 import com.capstone.mapper.LearnerRoadmapViewMapper;
+import com.capstone.messaging.KafkaProducer;
 import com.capstone.model.*;
 import com.capstone.repository.*;
 import com.capstone.service.LearnerRoadmapService;
+import lombok.extern.slf4j.Slf4j;
+import org.common.event.LearnerOnBoardingEvent;
 import lombok.RequiredArgsConstructor;
+import org.common.event.ProduceUserEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +25,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
     private final LearnerRoadmapRepository learnerRoadmapRepository;
     private final TalentRouteSnapshotRepository talentRouteSnapshotRepository;
@@ -36,6 +41,7 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
     private final MentorRouteMappingRepository mentorRouteMappingRepository;
     private final MentorLearnerMappingRepository mentorLearnerMappingRepository;
     private final MentorSnapshotRepository mentorSnapshotRepository;
+    private final KafkaProducer kafkaProducer;
 
 
     @Transactional
@@ -57,6 +63,17 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
 
         assignLearnerToMentor(roadmapRequestDto);
 
+        try {
+            LearnerOnBoardingEvent learnerEvent = LearnerOnBoardingEvent.builder()
+                    .learnerId(learnerRoadmap.getUserId())
+                    .requiresOnboarding(false)
+                    .build();
+            kafkaProducer.produce(learnerEvent);
+            log.info("Successfully published learner event: {} ", learnerRoadmap.getUserId());
+        } catch (Exception eventException) {
+            log.error("Failed to publish Learner event for LEARNER user: {}", learnerRoadmap.getUserId(), eventException);
+            throw new EventPublishingException("Failed to publish user event for Onboard completion", eventException);
+        }
     }
 
     private LearnerRoadmap createLearnerRoadmap(UUID learnerId, UUID talentRouteId){

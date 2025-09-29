@@ -41,7 +41,7 @@
         <dependency>
             <groupId>org.common</groupId>
             <artifactId>versapath-events</artifactId>
-            <version>3.0</version>
+            <version>3.1.1</version>
         </dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

@@ -88,6 +88,16 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
             throw new RoadmapExistException("You are already enrolled in this roadmap");
         }
 
+        List<LearnerRoadmap> learnerRoadmapList = learnerRoadmapRepository.findLearnerRoadmapByUserIdANDTalentRouteId(learnerId, talentRouteId);
+        if(!learnerRoadmapList.isEmpty()){
+            long uncompletedRoadmapNumber = learnerRoadmapList.stream()
+                    .filter(roadmap->roadmap.getOverallProgressPercentage() < 100.0)
+                    .count();
+            if(uncompletedRoadmapNumber >= 1){
+                throw new RoadmapExistException("You have an ongoing roadmap, you cannot start a new one!");
+            }
+        }
+
         return LearnerRoadmap.builder()
                 .talentRoute(talentRoute)
                 .userId(learnerId)

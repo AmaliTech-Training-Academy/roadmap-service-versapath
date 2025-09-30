@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,5 +28,14 @@ public interface LearnerRoadmapRepository extends JpaRepository<LearnerRoadmap, 
         AND rm.enrollmentStatus = 'ACTIVE'
     """)
     Optional<LearnerRoadmap> findActiveRoadmapByUserId(@Param("learnerId") UUID learnerId);
+
+    @Query("""
+        SELECT rm FROM LearnerRoadmap rm
+        WHERE rm.userId = :userId
+        AND rm.talentRoute.talentRouteId != :talentRouteId
+    """)
+    List<LearnerRoadmap> findLearnerRoadmapByUserIdANDTalentRouteId(@Param("userId") UUID userId,
+                                                                    @Param("talentRouteId") UUID talentRouteId);
+
 
 }

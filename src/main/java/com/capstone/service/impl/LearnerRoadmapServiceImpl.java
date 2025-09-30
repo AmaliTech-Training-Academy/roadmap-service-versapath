@@ -14,7 +14,6 @@ import com.capstone.service.LearnerRoadmapService;
 import lombok.extern.slf4j.Slf4j;
 import org.common.event.LearnerOnBoardingEvent;
 import lombok.RequiredArgsConstructor;
-import org.common.event.ProduceUserEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -93,7 +92,7 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
                 .talentRoute(talentRoute)
                 .userId(learnerId)
                 .enrollmentStatus(EnrollmentStatus.ACTIVE)
-                .overallProgressPercentage(0)
+                .overallProgressPercentage(0.0)
                 .build();
     }
 
@@ -104,7 +103,7 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
                             .learnerRoadmap(learnerRoadmap)
                             .growthTrack(track)
                             .status(ProgressStatus.NOT_STARTED)
-                            .progressPercentage(0)
+                            .progressPercentage(0.0)
                             .build();
 
                     // create immediately capsule progress for this growth track
@@ -133,7 +132,7 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
                         .learnerTrackProgress(learnerTrackProgress)
                         .skillCapsule(capsule)
                         .status(ProgressStatus.NOT_STARTED)
-                        .progressPercentage(0)
+                        .progressPercentage(0.0)
                         .build();
 
                     // create atom progress immediately for this capsule

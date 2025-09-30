@@ -113,13 +113,15 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
                 .count();
 
         // calculate percentage
-        int capsulePercentage =  atomProgressList.isEmpty() ? 0 : (int)(completedAtomsNumber * 100)/atomProgressList.size();
+        double capsulePercentage =  atomProgressList.isEmpty() ? 0.0 : (completedAtomsNumber * 100.0)/atomProgressList.size();
+        double roundedPercentage = Math.ceil(capsulePercentage * 10.0) / 10.0;
 
-        if(capsulePercentage == 100){
+        if(roundedPercentage >= 100.0){
             capsuleProgress.setStatus(ProgressStatus.COMPLETED);
             capsuleProgress.setCompletedAt(LocalDateTime.now());
+            roundedPercentage = 100.0;
         }
-        capsuleProgress.setProgressPercentage(capsulePercentage);
+        capsuleProgress.setProgressPercentage(roundedPercentage);
 
         return capsuleProgress;
     }
@@ -129,18 +131,20 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
         List<LearnerCapsuleProgress> capsuleProgressList = growthTrackProgress.getLearnerCapsuleProgresses();
 
         // get the sum of capsule percentages
-        long sumOfCapsulesPercentage = capsuleProgressList.stream()
+        double sumOfCapsulesPercentage = capsuleProgressList.stream()
                 .map(LearnerCapsuleProgress::getProgressPercentage)
-                .reduce(0, Integer::sum);
+                .reduce(0.0, Double::sum);
 
         // calculate percentage
-        int trackPercentage = capsuleProgressList.isEmpty() ? 0 : (int)(sumOfCapsulesPercentage/capsuleProgressList.size());
+        double trackPercentage = capsuleProgressList.isEmpty() ? 0.0 : sumOfCapsulesPercentage/capsuleProgressList.size();
+        double roundedPercentage = Math.ceil(trackPercentage * 10.0) / 10.0;
 
-        if(trackPercentage == 100){
+        if(roundedPercentage >= 100.0){
             growthTrackProgress.setStatus(ProgressStatus.COMPLETED);
             growthTrackProgress.setCompletedAt(LocalDateTime.now());
+            roundedPercentage = 100.0;
         }
-        growthTrackProgress.setProgressPercentage(trackPercentage);
+        growthTrackProgress.setProgressPercentage(roundedPercentage);
 
         return growthTrackProgress;
     }
@@ -150,18 +154,20 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
         List<LearnerTrackProgress> growthTrackProgressList = learnerRoadmap.getLearnerTrackProgresses();
 
         // get the sum of growth track percentages
-        long sumOfGrowthTracksPercentage = growthTrackProgressList.stream()
+        double sumOfGrowthTracksPercentage = growthTrackProgressList.stream()
                 .map(LearnerTrackProgress::getProgressPercentage)
-                .reduce(0, Integer::sum);
+                .reduce(0.0, Double::sum);
 
         // calculate percentage
-        int learnerRoadmapPercentage = growthTrackProgressList.isEmpty() ? 0 : (int)(sumOfGrowthTracksPercentage/growthTrackProgressList.size());
+        double learnerRoadmapPercentage = growthTrackProgressList.isEmpty() ? 0.0 : sumOfGrowthTracksPercentage/growthTrackProgressList.size();
+        double roundedPercentage = Math.ceil(learnerRoadmapPercentage * 10.0) / 10.0;
 
-        if(learnerRoadmapPercentage == 100){
+        if(roundedPercentage >= 100.0){
             learnerRoadmap.setCompletionDate(LocalDateTime.now());
+            roundedPercentage = 100.0;
         }
 
-        learnerRoadmap.setOverallProgressPercentage(learnerRoadmapPercentage);
+        learnerRoadmap.setOverallProgressPercentage(roundedPercentage);
 
         return learnerRoadmap;
     }
@@ -196,7 +202,7 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
                         .learnerRoadmap(talentRoute)
                         .growthTrack(growthTrack)
                         .status(ProgressStatus.NOT_STARTED)
-                        .progressPercentage(0)
+                        .progressPercentage(0.0)
                         .build();
 
                 talentRoute.getLearnerTrackProgresses().add(learnerGrowthTrackProgress); // add growth track to roadmap
@@ -227,7 +233,7 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
                         .learnerTrackProgress(learnerGrowthTrackProgress)
                         .skillCapsule(capsule)
                         .status(ProgressStatus.NOT_STARTED)
-                        .progressPercentage(0)
+                        .progressPercentage(0.0)
                         .build();
 
                 // attach the learner capsule progress to growth track progress
@@ -275,7 +281,7 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
     public void recalculateProgress(LearnerRoadmap talentRoute) {
         // Recalculate all growth tracks progresses
         List<LearnerTrackProgress> growthTracks = talentRoute.getLearnerTrackProgresses();
-        int totalGrowthTrackPercentage = getTotalGrowthTrackPercentageInTalentRoute(growthTracks);
+        double totalGrowthTrackPercentage = getTotalGrowthTrackPercentageInTalentRoute(growthTracks);
 
         // Recalculate talentRoute percentage
         recalculateTalentRoutePercentage(talentRoute, growthTracks, totalGrowthTrackPercentage);
@@ -284,46 +290,50 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
 
     private void recalculateTalentRoutePercentage(LearnerRoadmap talentRoute,
                                                   List<LearnerTrackProgress> growthTracks,
-                                                  int totalGrowthTrackPercentage ){
-        int talentRoutePercentage = growthTracks.isEmpty() ? 0 : totalGrowthTrackPercentage / growthTracks.size();
-        talentRoute.setOverallProgressPercentage(talentRoutePercentage);
+                                                  double totalGrowthTrackPercentage ){
+        double talentRoutePercentage = growthTracks.isEmpty() ? 0.0 : totalGrowthTrackPercentage / growthTracks.size();
+        double roundedPercentage = Math.ceil(talentRoutePercentage * 10.0) / 10.0;
+        talentRoute.setOverallProgressPercentage(roundedPercentage);
 
-        if (talentRoutePercentage == 0) {
+        if (roundedPercentage == 0.0) {
             talentRoute.setEnrollmentStatus(EnrollmentStatus.ACTIVE); // still enrolled, not started
-        } else if (talentRoutePercentage == 100) {
+        } else if (roundedPercentage >= 100.0) {
             talentRoute.setEnrollmentStatus(EnrollmentStatus.COMPLETED);
         }
 
         learnerRoadmapRepository.save(talentRoute); // store roadmap updated progress in the Database
     }
 
-    private int getTotalGrowthTrackPercentageInTalentRoute(List<LearnerTrackProgress> growthTracks){
-        int totalTrackPercentage = 0; // this is required to update roadmap overall percentage
+    private double getTotalGrowthTrackPercentageInTalentRoute(List<LearnerTrackProgress> growthTracks){
+        double totalTrackPercentage = 0.0; // this is required to update roadmap overall percentage
 
         // loop throw each growth track progress to recalculate percentage and the get the new percentage
         for (LearnerTrackProgress growthTrackProgress : growthTracks) {
             // first get the total percentage of capsule to calculate the growth track percentage
             List<LearnerCapsuleProgress> capsules = growthTrackProgress.getLearnerCapsuleProgresses();
-            int totalCapsulePercentage = getTotalCapsulePercentageInGrowthTrack(capsules);
+            double totalCapsulePercentage = getTotalCapsulePercentageInGrowthTrack(capsules);
 
             // update current growth track progress information
-            int currentGrowthTrackPercentage = capsules.isEmpty() ? 0 : totalCapsulePercentage / capsules.size();
-            growthTrackProgress.setProgressPercentage(currentGrowthTrackPercentage);
+            double currentGrowthTrackPercentage = capsules.isEmpty() ? 0.0 : totalCapsulePercentage / capsules.size();
+            double roundedPercentage = Math.ceil(currentGrowthTrackPercentage * 10.0) / 10.0;
+            growthTrackProgress.setProgressPercentage(roundedPercentage);
 
             // set growth track status
-            switch (currentGrowthTrackPercentage) {
-                case 0 -> growthTrackProgress.setStatus(ProgressStatus.NOT_STARTED);
-                case 100 -> growthTrackProgress.setStatus(ProgressStatus.COMPLETED);
-                default -> growthTrackProgress.setStatus(ProgressStatus.IN_PROGRESS);
+            if(roundedPercentage == 0.0){
+                growthTrackProgress.setStatus(ProgressStatus.NOT_STARTED);
+            } else if (roundedPercentage >= 100.0) {
+                growthTrackProgress.setStatus(ProgressStatus.COMPLETED);
+            }else{
+                growthTrackProgress.setStatus(ProgressStatus.IN_PROGRESS);
             }
 
-            totalTrackPercentage += currentGrowthTrackPercentage;
+            totalTrackPercentage += roundedPercentage;
         }
         return totalTrackPercentage;
     }
 
-    private int getTotalCapsulePercentageInGrowthTrack(List<LearnerCapsuleProgress> capsules){
-        int totalCapsulePercentage = 0; // this is required to calculate the growth track percentage
+    private double getTotalCapsulePercentageInGrowthTrack(List<LearnerCapsuleProgress> capsules){
+        double totalCapsulePercentage = 0.0; // this is required to calculate the growth track percentage
 
         // loop throw each capsule progress to recalculate percentage and the get the new percentage
         for (LearnerCapsuleProgress capsuleProgress : capsules) {
@@ -334,19 +344,18 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
                     .filter(LearnerAtomProgress::isCompleted)
                     .count();
 
-            int currentCapsulePercentage = atoms.isEmpty() ? 0 :
-                    (completedAtoms * 100) / atoms.size();
+            double currentCapsulePercentage = atoms.isEmpty() ? 0.0 :
+                    (completedAtoms * 100.0) / atoms.size();
 
             capsuleProgress.setProgressPercentage(currentCapsulePercentage);
 
             // update current capsule progress information
-            switch (currentCapsulePercentage) {
-                case 0 ->
-                        capsuleProgress.setStatus(ProgressStatus.NOT_STARTED);
-                case 100 ->
-                        capsuleProgress.setStatus(ProgressStatus.COMPLETED);
-                default ->
-                        capsuleProgress.setStatus(ProgressStatus.IN_PROGRESS);
+            if(currentCapsulePercentage == 0.0){
+                capsuleProgress.setStatus(ProgressStatus.NOT_STARTED);
+            } else if (currentCapsulePercentage >= 100.0) {
+                capsuleProgress.setStatus(ProgressStatus.COMPLETED);
+            }else{
+                capsuleProgress.setStatus(ProgressStatus.IN_PROGRESS);
             }
 
             totalCapsulePercentage += currentCapsulePercentage;

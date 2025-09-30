@@ -48,7 +48,7 @@ public class LearnerCapsuleProgress {
     @Min(value = 0, message = "Progress percentage cannot be negative")
     @Max(value = 100, message = "Progress percentage cannot exceed 100")
     @Column(name = "progress_percentage")
-    private Integer progressPercentage = 0;
+    private Double progressPercentage = 0.0;
 
     @Column(name = "started_at")
     private LocalDateTime startedAt;

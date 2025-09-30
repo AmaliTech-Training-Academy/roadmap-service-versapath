@@ -49,7 +49,7 @@ public class LearnerRoadmap {
     @Min(value = 0, message = "Progress percentage cannot be negative")
     @Max(value = 100, message = "Progress percentage cannot exceed 100")
     @Column(name = "overall_progress_percentage")
-    private Integer overallProgressPercentage = 0;
+    private Double overallProgressPercentage = 0.0;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

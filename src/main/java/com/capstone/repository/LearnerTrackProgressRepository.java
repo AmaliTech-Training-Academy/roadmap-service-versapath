@@ -1,5 +1,6 @@
 package com.capstone.repository;
 
+import com.capstone.model.LearnerRoadmap;
 import com.capstone.model.LearnerTrackProgress;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -37,4 +38,13 @@ public interface LearnerTrackProgressRepository extends JpaRepository<LearnerTra
         ORDER BY rtm.sequenceOrder
     """)
     List<Object[]> findTrackProgressesByLearnerIdWithSequence(@Param("learnerId") UUID learnerId);
+
+    @Query("""
+        SELECT tp FROM LearnerTrackProgress tp
+        WHERE tp.learnerRoadmap.userId = :userId
+        AND tp.growthTrack.growthTrackId != :trackId
+    """)
+    List<LearnerTrackProgress> findTrackProgressByUserIdAndTrackId(@Param("userId") UUID userId,
+                                                                   @Param("trackId") UUID trackId);
+
 }

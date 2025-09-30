@@ -89,6 +89,7 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
         }
 
         List<LearnerRoadmap> learnerRoadmapList = learnerRoadmapRepository.findLearnerRoadmapByUserIdANDTalentRouteId(learnerId, talentRouteId);
+        // find an ongoing learner roadmap
         if(!learnerRoadmapList.isEmpty()){
             long uncompletedRoadmapNumber = learnerRoadmapList.stream()
                     .filter(roadmap->roadmap.getOverallProgressPercentage() < 100.0)

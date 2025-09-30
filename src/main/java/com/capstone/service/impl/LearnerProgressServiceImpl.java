@@ -2,10 +2,7 @@ package com.capstone.service.impl;
 
 import com.capstone.dto.roadmap.AtomProgressRequestDto;
 import com.capstone.dto.roadmap.RecalculateProgressRequestDto;
-import com.capstone.exception.LessonException;
-import com.capstone.exception.ProgressExistException;
-import com.capstone.exception.ProgressNotFoundException;
-import com.capstone.exception.TalentRouteNotFoundException;
+import com.capstone.exception.*;
 import com.capstone.model.*;
 import com.capstone.repository.*;
 import com.capstone.service.LearnerProgressService;
@@ -27,6 +24,7 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
     private final RouteTrackMappingRepository routeTrackMappingRepository;
     private final GrowthTrackCapsuleMappingRepository growthTrackCapsuleMappingRepository;
     private final CapsuleAtomMappingRepository capsuleAtomMappingRepository;
+    private final LearnerTrackProgressRepository learnerTrackProgressRepository;
 
     @Transactional
     @Override
@@ -38,7 +36,7 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
 
         startAtomProgress(atomProgress); // start atom progress
         LearnerCapsuleProgress capsuleProgress = getCapsuleProgress(atomProgress); // start capsule progress
-        startGrowthTrackProgress(capsuleProgress); // start growth track progress
+        startGrowthTrackProgress(atomProgressRequestDto.getLearnerId(), capsuleProgress); // start growth track progress
 
         learnerAtomProgressRepository.save(atomProgress);
 
@@ -64,8 +62,20 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
         return capsuleProgress;
     }
 
-    private void startGrowthTrackProgress(LearnerCapsuleProgress capsuleProgress){
+    private void startGrowthTrackProgress(UUID learnerId, LearnerCapsuleProgress capsuleProgress){
         LearnerTrackProgress trackProgress = capsuleProgress.getLearnerTrackProgress();
+        List<LearnerTrackProgress> learnerTrackProgressList = learnerTrackProgressRepository
+                .findTrackProgressByUserIdAndTrackId(learnerId, trackProgress.getGrowthTrack().getGrowthTrackId());
+        //find an ongoing learner growth track
+        if(!learnerTrackProgressList.isEmpty()){
+            long uncompletedGrowthTrackNumber = learnerTrackProgressList.stream()
+                    .filter(track->track.getStatus().equals(ProgressStatus.IN_PROGRESS))
+                    .count();
+            if(uncompletedGrowthTrackNumber >=1 ){
+                throw new RoadmapExistException("You have an ongoing growth track, you cannot start a new one!");
+            }
+        }
+
         if(trackProgress.getStatus().equals(ProgressStatus.NOT_STARTED)){
             trackProgress.setStartedAt(LocalDateTime.now());
             trackProgress.setStartedAt(LocalDateTime.now());

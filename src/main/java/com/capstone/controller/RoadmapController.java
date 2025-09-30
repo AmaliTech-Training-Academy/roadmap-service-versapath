@@ -1,7 +1,6 @@
 package com.capstone.controller;
 
 import com.capstone.dto.response.ApiResponseDto;
-import com.capstone.dto.response.TalentRouteResponseDto;
 import com.capstone.dto.roadmap.RecalculateProgressRequestDto;
 import com.capstone.dto.roadmap.RoadmapRequestDto;
 import com.capstone.dto.roadmap.AtomProgressRequestDto;

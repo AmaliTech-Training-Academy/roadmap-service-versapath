@@ -18,6 +18,7 @@ import org.common.event.ProduceUserEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,7 +38,11 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
     private final LearnerTrackProgressRepository learnerTrackProgressRepository;
     private final LearnerCapsuleProgressRepository learnerCapsuleProgressRepository;
     private final LearnerRoadmapViewMapper mapper;
+    private final MentorRouteMappingRepository mentorRouteMappingRepository;
+    private final MentorLearnerMappingRepository mentorLearnerMappingRepository;
+    private final MentorSnapshotRepository mentorSnapshotRepository;
     private final KafkaProducer kafkaProducer;
+
 
     @Transactional
     @Override
@@ -55,6 +60,8 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
         learnerRoadmap.setLearnerTrackProgresses(growthTrackProgresses); // map roadmap to growth track progress
 
         learnerRoadmapRepository.save(learnerRoadmap);
+
+        assignLearnerToMentor(roadmapRequestDto);
 
         try {
             LearnerOnBoardingEvent learnerEvent = LearnerOnBoardingEvent.builder()
@@ -300,5 +307,49 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
                 return previousAtom.isCompleted();
             })
             .orElse(false);
+    }
+
+    private void assignLearnerToMentor(RoadmapRequestDto roadmapRequestDto){
+        MentorSnapshot mentor = selectMentorToAssign(roadmapRequestDto);
+        UserSnapshot learner = userSnapshotRepository.findByUserId(roadmapRequestDto.getLearnerId())
+                .orElseThrow( () -> new UserNotFoundException("A learner provided doesn't exist")
+                );
+
+        // assign learner to a mentor
+        MentorLearnerMapping mentorLearnerMapping = MentorLearnerMapping.builder()
+                        .mentor(mentor)
+                        .learner(learner)
+                        .createdAt(LocalDateTime.now())
+                        .updatedAt(LocalDateTime.now())
+                        .build();
+
+        mentorLearnerMappingRepository.save(mentorLearnerMapping);
+
+        // update number of learners assigned to mentor
+        mentorSnapshotRepository.incrementAssignedLearner(mentor.getId());
+
+        mentorSnapshotRepository.save(mentor);
+
+    }
+
+    private MentorSnapshot selectMentorToAssign(RoadmapRequestDto roadmapRequestDto){
+        List<MentorSnapshot> mentors = mentorRouteMappingRepository.findMentorsByTalentRouteId(roadmapRequestDto.getTalentRouteId());
+
+        if (mentors.isEmpty()) {
+            throw new MentorNotAvailableException("The Talent route provided has no mentor assigned to");
+        }
+
+        int minLearnerNumber = mentors.stream()
+                .mapToInt(MentorSnapshot::getAssignedLearner)
+                .min()
+                .getAsInt();
+
+        // Get all mentors with the same minimum number learners
+        List<MentorSnapshot> mentorsWithMinLearners = mentors.stream()
+                .filter(mentor -> mentor.getAssignedLearner() == minLearnerNumber)
+                .toList();
+
+        // select the first mentor
+        return mentorsWithMinLearners.getFirst();
     }
 }

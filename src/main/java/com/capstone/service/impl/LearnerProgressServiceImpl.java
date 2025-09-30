@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -116,7 +115,7 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
         // calculate percentage
         int capsulePercentage =  atomProgressList.isEmpty() ? 0 : (int)(completedAtomsNumber * 100)/atomProgressList.size();
 
-        if(capsuleProgress.getProgressPercentage() == 100){
+        if(capsulePercentage == 100){
             capsuleProgress.setStatus(ProgressStatus.COMPLETED);
             capsuleProgress.setCompletedAt(LocalDateTime.now());
         }
@@ -137,7 +136,7 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
         // calculate percentage
         int trackPercentage = capsuleProgressList.isEmpty() ? 0 : (int)(sumOfCapsulesPercentage/capsuleProgressList.size());
 
-        if(growthTrackProgress.getProgressPercentage() == 100){
+        if(trackPercentage == 100){
             growthTrackProgress.setStatus(ProgressStatus.COMPLETED);
             growthTrackProgress.setCompletedAt(LocalDateTime.now());
         }
@@ -158,7 +157,7 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
         // calculate percentage
         int learnerRoadmapPercentage = growthTrackProgressList.isEmpty() ? 0 : (int)(sumOfGrowthTracksPercentage/growthTrackProgressList.size());
 
-        if(learnerRoadmap.getOverallProgressPercentage() == 100){
+        if(learnerRoadmapPercentage == 100){
             learnerRoadmap.setCompletionDate(LocalDateTime.now());
         }
 

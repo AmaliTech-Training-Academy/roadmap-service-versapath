@@ -153,13 +153,18 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
         LearnerRoadmap learnerRoadmap = growthTrackProgress.getLearnerRoadmap();
         List<LearnerTrackProgress> growthTrackProgressList = learnerRoadmap.getLearnerTrackProgresses();
 
+        // only calculate the overall talent route percentage for growth tracks that are unlocked
+        List<LearnerTrackProgress> growthTracksTakenByLearner = growthTrackProgressList.stream()
+                .filter(track-> !track.getStatus().equals(ProgressStatus.NOT_STARTED))
+                .toList();
+
         // get the sum of growth track percentages
-        double sumOfGrowthTracksPercentage = growthTrackProgressList.stream()
+        double sumOfGrowthTracksPercentage = growthTracksTakenByLearner.stream()
                 .map(LearnerTrackProgress::getProgressPercentage)
                 .reduce(0.0, Double::sum);
 
         // calculate percentage
-        double learnerRoadmapPercentage = growthTrackProgressList.isEmpty() ? 0.0 : sumOfGrowthTracksPercentage/growthTrackProgressList.size();
+        double learnerRoadmapPercentage = growthTrackProgressList.isEmpty() ? 0.0 : sumOfGrowthTracksPercentage/growthTracksTakenByLearner.size();
         double roundedPercentage = Math.ceil(learnerRoadmapPercentage * 10.0) / 10.0;
 
         if(roundedPercentage >= 100.0){
@@ -291,7 +296,12 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
     private void recalculateTalentRoutePercentage(LearnerRoadmap talentRoute,
                                                   List<LearnerTrackProgress> growthTracks,
                                                   double totalGrowthTrackPercentage ){
-        double talentRoutePercentage = growthTracks.isEmpty() ? 0.0 : totalGrowthTrackPercentage / growthTracks.size();
+
+        // only calculate the overall talent route percentage for growth tracks that are unlocked
+        List<LearnerTrackProgress> growthTracksTakenByLearner = growthTracks.stream()
+                .filter(track-> !track.getStatus().equals(ProgressStatus.NOT_STARTED))
+                .toList();
+        double talentRoutePercentage = growthTracksTakenByLearner.isEmpty() ? 0.0 : totalGrowthTrackPercentage / growthTracksTakenByLearner.size();
         double roundedPercentage = Math.ceil(talentRoutePercentage * 10.0) / 10.0;
         talentRoute.setOverallProgressPercentage(roundedPercentage);
 

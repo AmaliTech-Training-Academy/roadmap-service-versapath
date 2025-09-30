@@ -326,7 +326,8 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
         mentorLearnerMappingRepository.save(mentorLearnerMapping);
 
         // update number of learners assigned to mentor
-        mentor.setAssignedLearner(mentor.getAssignedLearner() + 1);
+        mentorSnapshotRepository.incrementAssignedLearner(mentor.getId());
+
         mentorSnapshotRepository.save(mentor);
 
     }

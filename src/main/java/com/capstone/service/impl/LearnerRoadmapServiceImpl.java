@@ -1,6 +1,6 @@
 package com.capstone.service.impl;
 
-import com.capstone.dto.roadmap.RoadmapRequestDto;
+import com.capstone.dto.request.RoadmapRequestDto;
 import com.capstone.dto.response.LearnerAtomProgressDto;
 import com.capstone.dto.response.LearnerCapsuleProgressDto;
 import com.capstone.dto.response.LearnerRoadmapWithProgressDto;

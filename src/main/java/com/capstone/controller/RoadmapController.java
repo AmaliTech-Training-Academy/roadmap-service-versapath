@@ -1,15 +1,14 @@
 package com.capstone.controller;
 
 import com.capstone.dto.response.ApiResponseDto;
-import com.capstone.dto.roadmap.RecalculateProgressRequestDto;
-import com.capstone.dto.roadmap.RoadmapRequestDto;
-import com.capstone.dto.roadmap.AtomProgressRequestDto;
+import com.capstone.dto.request.RecalculateProgressRequestDto;
+import com.capstone.dto.request.RoadmapRequestDto;
+import com.capstone.dto.request.AtomProgressRequestDto;
 import com.capstone.service.LearnerProgressService;
 import com.capstone.service.LearnerRoadmapService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

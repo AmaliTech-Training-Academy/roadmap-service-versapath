@@ -1,4 +1,4 @@
-package com.capstone.dto.roadmap;
+package com.capstone.dto.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

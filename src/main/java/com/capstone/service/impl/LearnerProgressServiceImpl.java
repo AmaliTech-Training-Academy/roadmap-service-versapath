@@ -1,7 +1,7 @@
 package com.capstone.service.impl;
 
-import com.capstone.dto.roadmap.AtomProgressRequestDto;
-import com.capstone.dto.roadmap.RecalculateProgressRequestDto;
+import com.capstone.dto.request.AtomProgressRequestDto;
+import com.capstone.dto.request.RecalculateProgressRequestDto;
 import com.capstone.exception.*;
 import com.capstone.model.*;
 import com.capstone.repository.*;
@@ -129,7 +129,6 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
         if(roundedPercentage >= 100.0){
             capsuleProgress.setStatus(ProgressStatus.COMPLETED);
             capsuleProgress.setCompletedAt(LocalDateTime.now());
-            roundedPercentage = 100.0;
         }
         capsuleProgress.setProgressPercentage(roundedPercentage);
 

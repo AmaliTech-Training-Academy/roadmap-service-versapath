@@ -40,7 +40,6 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
     private final MentorRouteMappingRepository mentorRouteMappingRepository;
     private final MentorLearnerMappingRepository mentorLearnerMappingRepository;
     private final MentorSnapshotRepository mentorSnapshotRepository;
-    private final KafkaProducer kafkaProducer;
 
 
     @Transactional
@@ -61,18 +60,6 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
         learnerRoadmapRepository.save(learnerRoadmap);
 
         assignLearnerToMentor(roadmapRequestDto);
-
-        try {
-            LearnerOnBoardingEvent learnerEvent = LearnerOnBoardingEvent.builder()
-                    .learnerId(learnerRoadmap.getUserId())
-                    .requiresOnboarding(false)
-                    .build();
-            kafkaProducer.produce(learnerEvent);
-            log.info("Successfully published learner event: {} ", learnerRoadmap.getUserId());
-        } catch (Exception eventException) {
-            log.error("Failed to publish Learner event for LEARNER user: {}", learnerRoadmap.getUserId(), eventException);
-            throw new EventPublishingException("Failed to publish user event for Onboard completion", eventException);
-        }
     }
 
     private LearnerRoadmap createLearnerRoadmap(UUID learnerId, UUID talentRouteId){

@@ -2,11 +2,14 @@ package com.capstone.controller;
 
 import com.capstone.dto.response.ApiResponseDto;
 import com.capstone.dto.request.RecalculateProgressRequestDto;
+import com.capstone.dto.request.RoadmapRequestDto;
 import com.capstone.dto.request.AtomProgressRequestDto;
 import com.capstone.service.LearnerProgressService;
+import com.capstone.service.LearnerRoadmapService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,7 +18,14 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/roadmap")
 @Tag(name = "Roadmap Controller", description = "Manage all roadmap's api")
 public class RoadmapController {
+    private final LearnerRoadmapService learnerRoadmapService;
     private final LearnerProgressService learnerProgressService;
+    @PostMapping()
+    @Operation(summary = "Assign track", description = "This end point allows a learner to select talent route")
+    public ResponseEntity<ApiResponseDto<String>> assignRouteToLearner(@RequestBody RoadmapRequestDto roadmapRequestDto) {
+        learnerRoadmapService.assignLearnerToTalentRoute(roadmapRequestDto);
+        return ResponseEntity.ok(ApiResponseDto.success("You've successfully enrolled in a talent route"));
+    }
 
     @PostMapping("/start-progress")
     @Operation(summary = "Start progress", description = "This end point gets a learner to start tracking progress")

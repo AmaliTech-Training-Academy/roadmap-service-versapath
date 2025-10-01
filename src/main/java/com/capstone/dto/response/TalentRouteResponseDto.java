@@ -20,6 +20,7 @@ public class TalentRouteResponseDto {
     private UUID talentRouteId;
     private String routeName;
     private String description;
+    private String image;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Integer totalTracks;

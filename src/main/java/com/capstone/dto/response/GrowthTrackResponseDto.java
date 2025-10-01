@@ -20,6 +20,7 @@ public class GrowthTrackResponseDto {
     private UUID growthTrackId;
     private String trackName;
     private String description;
+    private String image;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Integer totalCapsules;

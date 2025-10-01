@@ -1,5 +1,6 @@
 package com.capstone.service;
 
+import com.capstone.dto.response.LearnerDto;
 import com.capstone.dto.response.PaginatedResponseDto;
 import com.capstone.dto.response.MentorResponseDto;
 import com.capstone.model.MentorSnapshot;
@@ -24,4 +25,5 @@ public interface MentorSnapshotService {
     Optional<MentorResponseDto> findByMentorIdBasic(UUID mentorId);
     Optional<MentorResponseDto> findByMentorIdWithSpecializations(UUID mentorId);
     PaginatedResponseDto<MentorResponseDto> findBySpecialization(UUID talentRouteId, Pageable pageable);
+    PaginatedResponseDto<LearnerDto> findLearnersByMentorId(UUID mentorId, Pageable pageable);
 }

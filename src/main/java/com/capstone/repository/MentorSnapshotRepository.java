@@ -1,6 +1,7 @@
 package com.capstone.repository;
 
 import com.capstone.model.MentorSnapshot;
+import com.capstone.model.UserSnapshot;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -47,5 +48,4 @@ public interface MentorSnapshotRepository extends JpaRepository<MentorSnapshot, 
         WHERE m.id = :mentorId
     """)
     void incrementAssignedLearner(@Param("mentorId") UUID mentorId);
-
 }

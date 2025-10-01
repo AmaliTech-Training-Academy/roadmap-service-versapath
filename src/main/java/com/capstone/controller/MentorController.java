@@ -1,6 +1,7 @@
 package com.capstone.controller;
 
 import com.capstone.dto.response.ApiResponseDto;
+import com.capstone.dto.response.LearnerDto;
 import com.capstone.dto.response.PaginatedResponseDto;
 import com.capstone.dto.response.MentorResponseDto;
 import com.capstone.service.MentorSnapshotService;
@@ -131,5 +132,13 @@ public class MentorController {
 
         PaginatedResponseDto<MentorResponseDto> result = mentorSnapshotService.findBySpecialization(talentRouteId, pageable);
         return ResponseEntity.ok(ApiResponseDto.success(result, "Mentors by specialization retrieved successfully"));
+    }
+
+    @GetMapping("/assigned-learners/{mentorId}")
+    public ResponseEntity<ApiResponseDto<PaginatedResponseDto<LearnerDto>>> getAssignedLearners(
+            @PathVariable UUID mentorId, Pageable pageable) {
+
+        PaginatedResponseDto<LearnerDto> result = mentorSnapshotService.findLearnersByMentorId(mentorId, pageable);
+        return ResponseEntity.ok(ApiResponseDto.success(result, "Assigned learners retrieved successfully"));
     }
 }

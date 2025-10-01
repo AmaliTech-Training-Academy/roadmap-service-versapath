@@ -319,7 +319,9 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
             talentRoute.setEnrollmentStatus(EnrollmentStatus.ACTIVE); // still enrolled, not started
         } else if (roundedPercentage >= 100.0) {
             talentRoute.setEnrollmentStatus(EnrollmentStatus.COMPLETED);
+            roundedPercentage = 100.0;
         }
+        talentRoute.setOverallProgressPercentage(roundedPercentage);
 
         learnerRoadmapRepository.save(talentRoute); // store roadmap updated progress in the Database
     }
@@ -343,6 +345,7 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
                 growthTrackProgress.setStatus(ProgressStatus.NOT_STARTED);
             } else if (roundedPercentage >= 100.0) {
                 growthTrackProgress.setStatus(ProgressStatus.COMPLETED);
+                roundedPercentage = 100.0;
             }else{
                 growthTrackProgress.setStatus(ProgressStatus.IN_PROGRESS);
             }
@@ -374,6 +377,7 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
                 capsuleProgress.setStatus(ProgressStatus.NOT_STARTED);
             } else if (currentCapsulePercentage >= 100.0) {
                 capsuleProgress.setStatus(ProgressStatus.COMPLETED);
+                currentCapsulePercentage = 100.0;
             }else{
                 capsuleProgress.setStatus(ProgressStatus.IN_PROGRESS);
             }

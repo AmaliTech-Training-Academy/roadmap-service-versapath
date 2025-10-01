@@ -4,6 +4,7 @@ import com.capstone.security.UserContextFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -46,6 +47,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/roadmap/skill-capsules/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/roadmap/skill-atoms/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/roadmap/mentors/**").hasRole("ADMIN")
+                .requestMatchers("/api/v1/roadmap/learner-onboarding/all").hasRole("ADMIN")
 
                 // Mixed access endpoints (roadmap operations)
                 .requestMatchers("/api/v1/roadmap").hasAnyRole("ADMIN", "LEARNER")
@@ -55,6 +57,7 @@ public class SecurityConfig {
 
                 // Learner-only endpoints (learner view)
                 .requestMatchers("/api/v1/learner/**").hasRole("LEARNER")
+                .requestMatchers(HttpMethod.POST,"/api/v1/roadmap/learner-onboarding").hasRole("LEARNER")
 
                 // Any other request requires authentication
                 .anyRequest().authenticated()

@@ -1,4 +1,4 @@
-package com.capstone.dto.roadmap;
+package com.capstone.dto.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,7 +11,10 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RecalculateProgressRequestDto {
+public class AtomProgressRequestDto {
     UUID learnerId;
+    UUID atomId;
+    UUID capsuleId;
+    UUID trackId;
     UUID talentRouteId;
 }

@@ -18,6 +18,7 @@ public class GrowthTrackSummaryDto {
     private UUID growthTrackId;
     private String trackName;
     private String description;
+    private String image;
     private Integer sequenceOrder;
     private Integer totalCapsules;
 }

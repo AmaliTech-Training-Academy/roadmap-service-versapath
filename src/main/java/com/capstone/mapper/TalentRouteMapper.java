@@ -25,6 +25,7 @@ public interface TalentRouteMapper {
     @Mapping(source = "growthTrack.growthTrackId", target = "growthTrackId")
     @Mapping(source = "growthTrack.trackName", target = "trackName")
     @Mapping(source = "growthTrack.description", target = "description")
+    @Mapping(source = "growthTrack.image", target = "image")
     GrowthTrackSummaryDto toGrowthTrackSummaryDto(RouteTrackMapping mapping);
 
     List<GrowthTrackSummaryDto> toGrowthTrackSummaryDtoList(List<RouteTrackMapping> mappings);

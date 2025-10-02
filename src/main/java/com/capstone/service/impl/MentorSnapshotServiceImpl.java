@@ -1,13 +1,17 @@
 package com.capstone.service.impl;
 
+import com.capstone.dto.response.LearnerDto;
 import com.capstone.dto.response.PaginatedResponseDto;
 import com.capstone.dto.response.MentorResponseDto;
 import com.capstone.exception.*;
 import com.capstone.mapper.MentorEventMapper;
 import com.capstone.mapper.MentorMapper;
+import com.capstone.mapper.UserMapper;
 import com.capstone.model.MentorSnapshot;
 import com.capstone.model.MentorRouteMapping;
 import com.capstone.model.TalentRouteSnapshot;
+import com.capstone.model.UserSnapshot;
+import com.capstone.repository.MentorLearnerMappingRepository;
 import com.capstone.repository.MentorSnapshotRepository;
 import com.capstone.service.MentorSnapshotService;
 import com.capstone.service.TalentRouteSnapshotService;
@@ -36,6 +40,8 @@ public class MentorSnapshotServiceImpl implements MentorSnapshotService {
     private final MentorEventMapper mentorEventMapper;
     private final MentorMapper mentorMapper;
     private final TalentRouteSnapshotService talentRouteSnapshotService;
+    private final MentorLearnerMappingRepository mentorLearnerMappingRepository;
+    private final UserMapper userMapper;
 
     @Override
     @CacheEvict(value = {
@@ -321,6 +327,17 @@ public class MentorSnapshotServiceImpl implements MentorSnapshotService {
         Page<MentorSnapshot> pageData = mentorSnapshotRepository.findBySpecializationTalentRouteId(talentRouteId, pageable);
         Page<MentorResponseDto> dtoPage = pageData.map(mentorMapper::toBasicResponseDto);
         return PaginationUtil.toPaginatedResponse(dtoPage);
+    }
+
+    @Override
+    public PaginatedResponseDto<LearnerDto> findLearnersByMentorId(UUID mentorId, Pageable pageable) {
+        MentorSnapshot mentor = mentorSnapshotRepository.findByMentorId(mentorId)
+                .orElseThrow( () -> new MentorNotFoundException("A mentor provided doesn't exist")
+                );
+        Page<UserSnapshot> pageData = mentorLearnerMappingRepository.findLearnersByMentorId(mentor.getMentorId(), pageable);
+        Page<LearnerDto> dtoPage = pageData.map(userMapper::toDto);
+        return PaginationUtil.toPaginatedResponse(dtoPage);
+
     }
 
     // Helper classes

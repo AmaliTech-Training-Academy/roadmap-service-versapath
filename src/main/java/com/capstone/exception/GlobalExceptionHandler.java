@@ -274,4 +274,11 @@ public class GlobalExceptionHandler {
                 .body(ApiResponseDto.error(ex.getMessage(), "Mentor not available for the talent route"));
     }
 
+    @ExceptionHandler(TalentRouteNotFoundException.class)
+    public ResponseEntity<ApiResponseDto<String>> handleTalentRouteNotFoundExceptionException(TalentRouteNotFoundException ex) {
+        log.error("Talent route not found: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponseDto.error(ex.getMessage(), "Talent route not found"));
+    }
+
 }

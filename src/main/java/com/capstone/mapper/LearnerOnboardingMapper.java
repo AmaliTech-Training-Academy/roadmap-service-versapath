@@ -12,8 +12,11 @@ import java.util.List;
 public interface LearnerOnboardingMapper {
 
     @Mapping(source = "learner.userId", target = "learnerId")
+    @Mapping(source = "learner.fullName", target = "learnerName")
     @Mapping(source = "talentRoute.talentRouteId", target = "talentRouteId")
+    @Mapping(source = "talentRoute.routeName", target = "talentRouteName")
     @Mapping(source = "growthTrack.growthTrackId", target = "growthTrackId")
+    @Mapping(source = "growthTrack.trackName", target = "growthTrackName")
     LearnerOnboardingResponseDto toBasicResponseDto(LearnerOnboarding entity);
 
     @Mapping(target = "id", ignore = true)

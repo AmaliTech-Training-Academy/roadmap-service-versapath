@@ -16,7 +16,10 @@ public class LearnerOnboardingResponseDto {
 
     private UUID id;
     private UUID learnerId;
+    private String learnerName;
     private UUID talentRouteId;
+    private String talentRouteName;
     private UUID growthTrackId;
+    private String growthTrackName;
     private LocalDateTime createdAt;
 }

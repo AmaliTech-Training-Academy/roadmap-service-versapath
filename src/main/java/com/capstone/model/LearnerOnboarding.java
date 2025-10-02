@@ -24,7 +24,6 @@ public class LearnerOnboarding {
     @JoinColumn(
             name = "learner_id",
             referencedColumnName = "user_id",
-            insertable = false,
             updatable = false,
             foreignKey = @ForeignKey(name = "fk_learner_onboarding_user")
     )
@@ -34,7 +33,6 @@ public class LearnerOnboarding {
     @JoinColumn(
             name = "talent_route_id",
             referencedColumnName = "talent_route_id",
-            insertable = false,
             updatable = false,
             foreignKey = @ForeignKey(name = "fk_learner_onboarding_talent_route")
     )
@@ -44,7 +42,6 @@ public class LearnerOnboarding {
     @JoinColumn(
             name = "growth_track_id",
             referencedColumnName = "growth_track_id",
-            insertable = false,
             updatable = false,
             foreignKey = @ForeignKey(name = "fk_learner_onboarding_growth_track")
     )

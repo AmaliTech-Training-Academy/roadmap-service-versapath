@@ -48,6 +48,11 @@ public class LearnerOnboardingServiceImpl implements LearnerOnboardingService {
     public LearnerOnboardingResponseDto createOnboarding(LearnerOnboardingRequestDto requestDto) {
         log.info("Creating learner onboarding for learner: {}", requestDto.getLearnerId());
 
+        // Check if onboarding already exists for this learner
+        if (existsByLearnerId(requestDto.getLearnerId())) {
+            throw new ValidationException("Onboarding already exists for learner: " + requestDto.getLearnerId());
+        }
+
         // Validate and get required entities
         UserSnapshot learner = userSnapshotRepository.findByUserId(requestDto.getLearnerId())
                 .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + requestDto.getLearnerId()));
@@ -58,10 +63,6 @@ public class LearnerOnboardingServiceImpl implements LearnerOnboardingService {
         GrowthTrackSnapshot growthTrack = growthTrackSnapshotRepository.findByGrowthTrackId(requestDto.getGrowthTrackId())
                 .orElseThrow(() -> new GrowthTrackNotFoundException("Growth track not found with ID: " + requestDto.getGrowthTrackId()));
 
-        // Check if onboarding already exists for this learner
-        if (existsByLearnerId(requestDto.getLearnerId())) {
-            throw new ValidationException("Onboarding already exists for learner: " + requestDto.getLearnerId());
-        }
 
         // Create entity and set relationships
         LearnerOnboarding onboarding = learnerOnboardingMapper.toEntity(requestDto);
@@ -100,7 +101,7 @@ public class LearnerOnboardingServiceImpl implements LearnerOnboardingService {
     @Override
     @Transactional(readOnly = true)
     public PaginatedResponseDto<LearnerOnboardingResponseDto> findAll(Pageable pageable) {
-        Page<LearnerOnboarding> onboardingsPage = learnerOnboardingRepository.findAll(pageable);
+        Page<LearnerOnboarding> onboardingsPage = learnerOnboardingRepository.findAllWithRelationships(pageable);
 
         // Use basic mapping (no names) for performance in list view
         List<LearnerOnboardingResponseDto> responseDto = learnerOnboardingMapper

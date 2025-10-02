@@ -10,6 +10,7 @@ import com.capstone.model.RouteTrackMapping;
 import com.capstone.model.TalentRouteSnapshot;
 import com.capstone.repository.TalentRouteSnapshotRepository;
 import com.capstone.service.GrowthTrackSnapshotService;
+import com.capstone.service.S3ImageService;
 import com.capstone.service.TalentRouteSnapshotService;
 import com.capstone.util.PaginationUtil;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class TalentRouteSnapshotServiceImpl implements TalentRouteSnapshotServic
     private final TalentRouteEventMapper talentRouteEventMapper;
     private final TalentRouteMapper talentRouteMapper;
     private final GrowthTrackSnapshotService growthTrackSnapshotService;
+    private final S3ImageService s3ImageService;
 
     @Override
     @CacheEvict(value = {
@@ -284,7 +286,11 @@ public class TalentRouteSnapshotServiceImpl implements TalentRouteSnapshotServic
             pageable.getPageNumber(), pageable.getPageSize());
 
         Page<TalentRouteSnapshot> pageData = talentRouteSnapshotRepository.findAll(pageable);
-        Page<TalentRouteResponseDto> dtoPage = pageData.map(talentRouteMapper::toBasicResponseDto);
+        Page<TalentRouteResponseDto> dtoPage = pageData.map(entity -> {
+            TalentRouteResponseDto dto = talentRouteMapper.toBasicResponseDto(entity);
+            dto.setImage(s3ImageService.generatePresignedUrl(entity.getImage()));
+            return dto;
+        });
         return PaginationUtil.toPaginatedResponse(dtoPage);
     }
 
@@ -296,7 +302,18 @@ public class TalentRouteSnapshotServiceImpl implements TalentRouteSnapshotServic
             pageable.getPageNumber(), pageable.getPageSize());
 
         Page<TalentRouteSnapshot> pageData = talentRouteSnapshotRepository.findAllWithTrackMappings(pageable);
-        Page<TalentRouteResponseDto> dtoPage = pageData.map(talentRouteMapper::toResponseDtoWithTracks);
+        Page<TalentRouteResponseDto> dtoPage = pageData.map(entity -> {
+            TalentRouteResponseDto dto = talentRouteMapper.toResponseDtoWithTracks(entity);
+            dto.setImage(s3ImageService.generatePresignedUrl(entity.getImage()));
+
+            // Also generate presigned URLs for growth track images in the tracks list
+            if (dto.getTracks() != null) {
+                dto.getTracks().forEach(track ->
+                        track.setImage(s3ImageService.generatePresignedUrl(track.getImage()))
+                );
+            }
+            return dto;
+        });
         return PaginationUtil.toPaginatedResponse(dtoPage);
     }
 
@@ -308,7 +325,11 @@ public class TalentRouteSnapshotServiceImpl implements TalentRouteSnapshotServic
             routeName, pageable.getPageNumber(), pageable.getPageSize());
 
         Page<TalentRouteSnapshot> pageData = talentRouteSnapshotRepository.findByRouteNameContainingIgnoreCase(routeName, pageable);
-        Page<TalentRouteResponseDto> dtoPage = pageData.map(talentRouteMapper::toBasicResponseDto);
+        Page<TalentRouteResponseDto> dtoPage = pageData.map(entity -> {
+            TalentRouteResponseDto dto = talentRouteMapper.toBasicResponseDto(entity);
+            dto.setImage(s3ImageService.generatePresignedUrl(entity.getImage()));
+            return dto;
+        });
         return PaginationUtil.toPaginatedResponse(dtoPage);
     }
 
@@ -319,7 +340,11 @@ public class TalentRouteSnapshotServiceImpl implements TalentRouteSnapshotServic
         log.debug("Finding talent route (basic) by talentRouteId: {}", talentRouteId);
 
         return talentRouteSnapshotRepository.findByTalentRouteId(talentRouteId)
-                .map(talentRouteMapper::toBasicResponseDto);
+                .map(entity -> {
+                    TalentRouteResponseDto dto = talentRouteMapper.toBasicResponseDto(entity);
+                    dto.setImage(s3ImageService.generatePresignedUrl(entity.getImage()));
+                    return dto;
+                });
     }
 
     @Override
@@ -329,7 +354,18 @@ public class TalentRouteSnapshotServiceImpl implements TalentRouteSnapshotServic
         log.debug("Finding talent route with track summaries by talentRouteId: {}", talentRouteId);
 
         return talentRouteSnapshotRepository.findByTalentRouteIdWithTrackMappings(talentRouteId)
-                .map(talentRouteMapper::toResponseDtoWithTracks);
+                .map(entity -> {
+                    TalentRouteResponseDto dto = talentRouteMapper.toResponseDtoWithTracks(entity);
+                    dto.setImage(s3ImageService.generatePresignedUrl(entity.getImage()));
+
+                    // Also generate presigned URLs for growth track images in the tracks list
+                    if (dto.getTracks() != null) {
+                        dto.getTracks().forEach(track ->
+                                track.setImage(s3ImageService.generatePresignedUrl(track.getImage()))
+                        );
+                    }
+                    return dto;
+                });
     }
 
     // Helper classes

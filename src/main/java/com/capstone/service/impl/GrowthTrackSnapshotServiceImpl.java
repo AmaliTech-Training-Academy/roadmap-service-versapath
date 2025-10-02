@@ -10,6 +10,7 @@ import com.capstone.model.SkillCapsuleSnapshot;
 import com.capstone.model.TrackCapsuleMapping;
 import com.capstone.repository.GrowthTrackSnapshotRepository;
 import com.capstone.service.GrowthTrackSnapshotService;
+import com.capstone.service.S3ImageService;
 import com.capstone.service.SkillCapsuleSnapshotService;
 import com.capstone.util.PaginationUtil;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class GrowthTrackSnapshotServiceImpl implements GrowthTrackSnapshotServic
     private final GrowthTrackEventMapper growthTrackEventMapper;
     private final GrowthTrackMapper growthTrackMapper;
     private final SkillCapsuleSnapshotService skillCapsuleSnapshotService;
+    private final S3ImageService s3ImageService;
 
     @Override
     @CacheEvict(value = {
@@ -277,9 +279,15 @@ public class GrowthTrackSnapshotServiceImpl implements GrowthTrackSnapshotServic
     @Transactional(readOnly = true)
     @Cacheable(value = "growth-tracks", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public PaginatedResponseDto<GrowthTrackResponseDto> findAllBasic(Pageable pageable) {
-        log.debug("Finding all growth tracks with basic info, page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
+        log.debug("Finding all growth tracks (basic) with pagination: page={}, size={}",
+                pageable.getPageNumber(), pageable.getPageSize());
+
         Page<GrowthTrackSnapshot> pageData = growthTrackSnapshotRepository.findAll(pageable);
-        Page<GrowthTrackResponseDto> dtoPage = pageData.map(growthTrackMapper::toBasicResponseDto);
+        Page<GrowthTrackResponseDto> dtoPage = pageData.map(entity -> {
+            GrowthTrackResponseDto dto = growthTrackMapper.toBasicResponseDto(entity);
+            dto.setImage(s3ImageService.generatePresignedUrl(entity.getImage()));
+            return dto;
+        });
         return PaginationUtil.toPaginatedResponse(dtoPage);
     }
 
@@ -287,9 +295,15 @@ public class GrowthTrackSnapshotServiceImpl implements GrowthTrackSnapshotServic
     @Transactional(readOnly = true)
     @Cacheable(value = "growth-tracks-with-capsules", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public PaginatedResponseDto<GrowthTrackResponseDto> findAllWithCapsuleSummaries(Pageable pageable) {
-        log.debug("Finding all growth tracks with capsule summaries, page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
+        log.debug("Finding all growth tracks with capsule summaries: page={}, size={}",
+                pageable.getPageNumber(), pageable.getPageSize());
+
         Page<GrowthTrackSnapshot> pageData = growthTrackSnapshotRepository.findAllWithCapsuleMappings(pageable);
-        Page<GrowthTrackResponseDto> dtoPage = pageData.map(growthTrackMapper::toResponseDtoWithCapsules);
+        Page<GrowthTrackResponseDto> dtoPage = pageData.map(entity -> {
+            GrowthTrackResponseDto dto = growthTrackMapper.toResponseDtoWithCapsules(entity);
+            dto.setImage(s3ImageService.generatePresignedUrl(entity.getImage()));
+            return dto;
+        });
         return PaginationUtil.toPaginatedResponse(dtoPage);
     }
 
@@ -297,9 +311,15 @@ public class GrowthTrackSnapshotServiceImpl implements GrowthTrackSnapshotServic
     @Transactional(readOnly = true)
     @Cacheable(value = "growth-tracks-search", key = "#trackName + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public PaginatedResponseDto<GrowthTrackResponseDto> searchByTrackNameBasic(String trackName, Pageable pageable) {
-        log.debug("Searching growth tracks by name: '{}', page: {}, size: {}", trackName, pageable.getPageNumber(), pageable.getPageSize());
+        log.debug("Searching growth tracks (basic) by name '{}': page={}, size={}",
+                trackName, pageable.getPageNumber(), pageable.getPageSize());
+
         Page<GrowthTrackSnapshot> pageData = growthTrackSnapshotRepository.findByTrackNameContainingIgnoreCase(trackName, pageable);
-        Page<GrowthTrackResponseDto> dtoPage = pageData.map(growthTrackMapper::toBasicResponseDto);
+        Page<GrowthTrackResponseDto> dtoPage = pageData.map(entity -> {
+            GrowthTrackResponseDto dto = growthTrackMapper.toBasicResponseDto(entity);
+            dto.setImage(s3ImageService.generatePresignedUrl(entity.getImage()));
+            return dto;
+        });
         return PaginationUtil.toPaginatedResponse(dtoPage);
     }
 
@@ -307,18 +327,29 @@ public class GrowthTrackSnapshotServiceImpl implements GrowthTrackSnapshotServic
     @Transactional(readOnly = true)
     @Cacheable(value = "growth-track-single", key = "#growthTrackId")
     public Optional<GrowthTrackResponseDto> findByGrowthTrackIdBasic(UUID growthTrackId) {
-        log.debug("Finding growth track by ID with basic info: {}", growthTrackId);
+        log.debug("Finding growth track (basic) by growthTrackId: {}", growthTrackId);
+
         return growthTrackSnapshotRepository.findByGrowthTrackId(growthTrackId)
-                .map(growthTrackMapper::toBasicResponseDto);
+                .map(entity -> {
+                    GrowthTrackResponseDto dto = growthTrackMapper.toBasicResponseDto(entity);
+                    dto.setImage(s3ImageService.generatePresignedUrl(entity.getImage()));
+                    return dto;
+                });
     }
+
 
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "growth-track-single", key = "#growthTrackId + '-with-capsules'")
     public Optional<GrowthTrackResponseDto> findByGrowthTrackIdWithCapsuleSummaries(UUID growthTrackId) {
-        log.debug("Finding growth track by ID with capsule summaries: {}", growthTrackId);
+        log.debug("Finding growth track with capsule summaries by growthTrackId: {}", growthTrackId);
+
         return growthTrackSnapshotRepository.findByGrowthTrackIdWithCapsuleMappings(growthTrackId)
-                .map(growthTrackMapper::toResponseDtoWithCapsules);
+                .map(entity -> {
+                    GrowthTrackResponseDto dto = growthTrackMapper.toResponseDtoWithCapsules(entity);
+                    dto.setImage(s3ImageService.generatePresignedUrl(entity.getImage()));
+                    return dto;
+                });
     }
 
     // Helper classes

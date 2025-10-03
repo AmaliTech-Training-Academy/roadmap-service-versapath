@@ -15,6 +15,5 @@ public interface LearnerRoadmapService {
 
     Optional<LearnerRoadmapWithProgressDto> getLearnerRoadmap(UUID learnerId);
     List<LearnerTrackProgressDto> getLearnerTracks(UUID learnerId);
-    List<LearnerCapsuleProgressDto> getTrackCapsules(UUID learnerId, UUID trackId);
     List<LearnerAtomProgressDto> getCapsuleAtoms(UUID learnerId, UUID capsuleId);
 }

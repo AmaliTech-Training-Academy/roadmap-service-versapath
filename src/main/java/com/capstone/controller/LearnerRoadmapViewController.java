@@ -2,7 +2,6 @@ package com.capstone.controller;
 
 import com.capstone.dto.response.ApiResponseDto;
 import com.capstone.dto.response.LearnerAtomProgressDto;
-import com.capstone.dto.response.LearnerCapsuleProgressDto;
 import com.capstone.dto.response.LearnerRoadmapWithProgressDto;
 import com.capstone.dto.response.LearnerTrackProgressDto;
 import com.capstone.service.LearnerRoadmapService;
@@ -39,28 +38,15 @@ public class LearnerRoadmapViewController {
     }
 
     @GetMapping("/my-tracks")
-    @Operation(summary = "Get my tracks with progress",
-               description = "Get all tracks for learner's roadmap with progress")
+    @Operation(summary = "Get my tracks with progress and capsules",
+            description = "Get all tracks for learner's roadmap with progress and associated capsules")
     public ResponseEntity<ApiResponseDto<List<LearnerTrackProgressDto>>> getMyTracks(
             @RequestHeader("X-User-ID") UUID learnerId) {
 
         List<LearnerTrackProgressDto> tracks =
-            learnerRoadmapService.getLearnerTracks(learnerId);
+                learnerRoadmapService.getLearnerTracks(learnerId);
 
-        return ResponseEntity.ok(ApiResponseDto.success(tracks, "Your tracks retrieved successfully"));
-    }
-
-    @GetMapping("/my-tracks/{trackId}/capsules")
-    @Operation(summary = "Get track capsules with progress",
-               description = "Get capsules for specific track with learner's progress")
-    public ResponseEntity<ApiResponseDto<List<LearnerCapsuleProgressDto>>> getTrackCapsules(
-            @PathVariable UUID trackId,
-            @RequestHeader("X-User-ID") UUID learnerId) {
-
-        List<LearnerCapsuleProgressDto> capsules =
-            learnerRoadmapService.getTrackCapsules(learnerId, trackId);
-
-        return ResponseEntity.ok(ApiResponseDto.success(capsules, "Track capsules retrieved successfully"));
+        return ResponseEntity.ok(ApiResponseDto.success(tracks, "Your tracks with capsules retrieved successfully"));
     }
 
     @GetMapping("/my-capsules/{capsuleId}/atoms")

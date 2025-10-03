@@ -32,6 +32,7 @@ public interface LearnerRoadmapViewMapper {
     @Mapping(source = "growthTrack.description", target = "description")
     @Mapping(target = "sequenceOrder", ignore = true)
     @Mapping(target = "isUnlocked", ignore = true)
+    @Mapping(target = "capsules", ignore = true)
     LearnerTrackProgressDto toLearnerTrackProgressDto(LearnerTrackProgress trackProgress);
 
     List<LearnerTrackProgressDto> toLearnerTrackProgressDtoList(List<LearnerTrackProgress> trackProgresses);

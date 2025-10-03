@@ -7,12 +7,10 @@ import com.capstone.dto.response.LearnerRoadmapWithProgressDto;
 import com.capstone.dto.response.LearnerTrackProgressDto;
 import com.capstone.exception.*;
 import com.capstone.mapper.LearnerRoadmapViewMapper;
-import com.capstone.messaging.KafkaProducer;
 import com.capstone.model.*;
 import com.capstone.repository.*;
 import com.capstone.service.LearnerRoadmapService;
 import lombok.extern.slf4j.Slf4j;
-import org.common.event.LearnerOnBoardingEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -179,53 +177,45 @@ public class LearnerRoadmapServiceImpl implements LearnerRoadmapService {
                     learnerTrackProgressRepository.findTrackProgressesByLearnerIdWithSequence(learnerId);
 
             return trackProgressesWithSequence.stream()
-                .map(result -> {
-                    LearnerTrackProgress trackProgress = (LearnerTrackProgress) result[0];
-                    Integer sequenceOrder = (Integer) result[1];
+                    .map(result -> {
+                        LearnerTrackProgress trackProgress = (LearnerTrackProgress) result[0];
+                        Integer sequenceOrder = (Integer) result[1];
 
-                    LearnerTrackProgressDto dto = mapper.toLearnerTrackProgressDto(trackProgress);
-                    dto.setSequenceOrder(sequenceOrder);
+                        LearnerTrackProgressDto dto = mapper.toLearnerTrackProgressDto(trackProgress);
+                        dto.setSequenceOrder(sequenceOrder);
 
-                    // Set unlock status: first track is always unlocked, others depend on previous completion
-                    dto.setIsUnlocked(sequenceOrder == 1 || isPreviousTrackCompleted(learnerId, sequenceOrder));
+                        // Set unlock status: first track is always unlocked, others depend on previous completion
+                        dto.setIsUnlocked(sequenceOrder == 1 || isPreviousTrackCompleted(learnerId, sequenceOrder));
 
-                    return dto;
-                })
-                .toList();
+                        // Get capsules for this track
+                        List<Object[]> capsuleProgressesWithSequence =
+                                learnerTrackProgressRepository.findCapsuleProgressesByLearnerIdAndTrackIdWithSequence(
+                                        learnerId, trackProgress.getGrowthTrack().getGrowthTrackId());
+
+                        List<LearnerCapsuleProgressDto> capsules = capsuleProgressesWithSequence.stream()
+                                .map(capsuleResult -> {
+                                    LearnerCapsuleProgress capsuleProgress = (LearnerCapsuleProgress) capsuleResult[0];
+                                    Integer capsuleSequenceOrder = (Integer) capsuleResult[1];
+
+                                    LearnerCapsuleProgressDto capsuleDto = mapper.toLearnerCapsuleProgressDto(capsuleProgress);
+                                    capsuleDto.setSequenceOrder(capsuleSequenceOrder);
+
+                                    // Set unlock status: first capsule is always unlocked, others depend on previous completion
+                                    capsuleDto.setIsUnlocked(capsuleSequenceOrder == 1 ||
+                                            isPreviousCapsuleCompleted(learnerId, trackProgress.getGrowthTrack().getGrowthTrackId(), capsuleSequenceOrder));
+
+                                    return capsuleDto;
+                                })
+                                .toList();
+
+                        dto.setCapsules(capsules);
+
+                        return dto;
+                    })
+                    .toList();
         } else {
             throw new RoadmapNotFoundException("No active roadmap found for learner: " + learnerId);
         }
-    }
-
-    @Override
-    public List<LearnerCapsuleProgressDto> getTrackCapsules(UUID learnerId, UUID trackId) {
-        // Validate learner has active roadmap
-        if (learnerRoadmapRepository.findActiveRoadmapByUserId(learnerId).isEmpty()) {
-            throw new RoadmapNotFoundException("No active roadmap found for learner: " + learnerId);
-        }
-
-        List<Object[]> capsuleProgressesWithSequence =
-            learnerTrackProgressRepository.findCapsuleProgressesByLearnerIdAndTrackIdWithSequence(learnerId, trackId);
-
-        // If empty, track might not exist or not belong to learner
-        if (capsuleProgressesWithSequence.isEmpty()) {
-            throw new GrowthTrackNotFoundException("Track not found or not accessible for learner", trackId);
-        }
-
-        return capsuleProgressesWithSequence.stream()
-            .map(result -> {
-                LearnerCapsuleProgress capsuleProgress = (LearnerCapsuleProgress) result[0];
-                Integer sequenceOrder = (Integer) result[1];
-
-                LearnerCapsuleProgressDto dto = mapper.toLearnerCapsuleProgressDto(capsuleProgress);
-                dto.setSequenceOrder(sequenceOrder);
-
-                // Set unlock status: first capsule is always unlocked, others depend on previous completion
-                dto.setIsUnlocked(sequenceOrder == 1 || isPreviousCapsuleCompleted(learnerId, trackId, sequenceOrder));
-
-                return dto;
-            })
-            .toList();
     }
 
     @Override

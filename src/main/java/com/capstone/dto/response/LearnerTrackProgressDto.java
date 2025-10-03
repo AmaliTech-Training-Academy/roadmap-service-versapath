@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -26,4 +27,5 @@ public class LearnerTrackProgressDto {
     private LocalDateTime startedAt;
     private LocalDateTime completedAt;
     private Boolean isUnlocked;
+    private List<LearnerCapsuleProgressDto> capsules;
 }

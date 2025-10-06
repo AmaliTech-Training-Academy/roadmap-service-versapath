@@ -108,7 +108,7 @@ public class GrowthTrackSnapshotServiceImpl implements GrowthTrackSnapshotServic
                 smartUpdateTrackCapsuleMappings(updatedTrack, event.getSkillCapsules());
                 log.info("Successfully updated capsule mappings for track {}", updatedTrack.getGrowthTrackId());
 
-                // 🎯 SIMPLE FIX: Update progress for affected learners
+                //Update progress for affected learners
                 try {
                     getAffectedLearners(updatedTrack);
                 } catch (Exception e) {

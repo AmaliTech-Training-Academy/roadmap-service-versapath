@@ -6,12 +6,12 @@ import com.capstone.exception.*;
 import com.capstone.mapper.GrowthTrackEventMapper;
 import com.capstone.mapper.GrowthTrackMapper;
 import com.capstone.model.GrowthTrackSnapshot;
+import com.capstone.model.LearnerRoadmap;
 import com.capstone.model.SkillCapsuleSnapshot;
 import com.capstone.model.TrackCapsuleMapping;
 import com.capstone.repository.GrowthTrackSnapshotRepository;
-import com.capstone.service.GrowthTrackSnapshotService;
-import com.capstone.service.S3ImageService;
-import com.capstone.service.SkillCapsuleSnapshotService;
+import com.capstone.repository.LearnerRoadmapRepository;
+import com.capstone.service.*;
 import com.capstone.util.PaginationUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +38,8 @@ public class GrowthTrackSnapshotServiceImpl implements GrowthTrackSnapshotServic
     private final GrowthTrackMapper growthTrackMapper;
     private final SkillCapsuleSnapshotService skillCapsuleSnapshotService;
     private final S3ImageService s3ImageService;
+    private final LearnerProgressService learnerProgressService;
+    private final LearnerRoadmapRepository learnerRoadmapRepository;
 
     @Override
     @CacheEvict(value = {
@@ -105,6 +107,13 @@ public class GrowthTrackSnapshotServiceImpl implements GrowthTrackSnapshotServic
             if (event.getSkillCapsules() != null && !event.getSkillCapsules().isEmpty()) {
                 smartUpdateTrackCapsuleMappings(updatedTrack, event.getSkillCapsules());
                 log.info("Successfully updated capsule mappings for track {}", updatedTrack.getGrowthTrackId());
+
+                // 🎯 SIMPLE FIX: Update progress for affected learners
+                try {
+                    getAffectedLearners(updatedTrack);
+                } catch (Exception e) {
+                    log.error("Failed to update learner progress after track update: {}", e.getMessage());
+                }
             }
 
             log.info("Successfully updated growth track with ID: {}", updatedTrack.getGrowthTrackId());
@@ -116,6 +125,15 @@ public class GrowthTrackSnapshotServiceImpl implements GrowthTrackSnapshotServic
         } catch (Exception e) {
             log.error("Unexpected error updating track with ID: {}", existingTrack.getGrowthTrackId(), e);
             throw new GrowthTrackProcessingException("Failed to update growth track", e);
+        }
+    }
+
+    private void getAffectedLearners(GrowthTrackSnapshot updatedTrack) {
+        List<Object[]> affectedLearners = learnerRoadmapRepository.findActiveLearnersByGrowthTrackId(updatedTrack.getGrowthTrackId());
+        if (!affectedLearners.isEmpty()) {
+            List<UUID> learnerIds = affectedLearners.stream().map(arr -> (UUID) arr[0]).toList();
+            List<UUID> talentRouteIds = affectedLearners.stream().map(arr -> (UUID) arr[1]).toList();
+            learnerProgressService.bulkRecalculateProgress(learnerIds, talentRouteIds);
         }
     }
 
@@ -253,6 +271,12 @@ public class GrowthTrackSnapshotServiceImpl implements GrowthTrackSnapshotServic
                         event.getSkillCapsules().size(), updatedTrack.getGrowthTrackId(),
                         updatedTrack.getTrackCapsuleMappings().size());
 
+                //Update progress for affected learners
+                try {
+                    getAffectedLearners(updatedTrack);
+                } catch (Exception e) {
+                    log.error("Failed to update learner progress after capsule assignment: {}", e.getMessage());
+                }
                 return updatedTrack;
             } else {
                 throw new TrackCapsuleMappingException("No skill capsule mappings provided for assignment");

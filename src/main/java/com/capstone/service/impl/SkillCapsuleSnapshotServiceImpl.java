@@ -8,7 +8,9 @@ import com.capstone.mapper.SkillCapsuleMapper;
 import com.capstone.model.CapsuleAtomMapping;
 import com.capstone.model.SkillAtomSnapshot;
 import com.capstone.model.SkillCapsuleSnapshot;
+import com.capstone.repository.LearnerRoadmapRepository;
 import com.capstone.repository.SkillCapsuleSnapshotRepository;
+import com.capstone.service.LearnerProgressService;
 import com.capstone.service.SkillAtomSnapshotService;
 import com.capstone.service.SkillCapsuleSnapshotService;
 import com.capstone.util.PaginationUtil;
@@ -36,6 +38,8 @@ public class SkillCapsuleSnapshotServiceImpl implements SkillCapsuleSnapshotServ
     private final SkillCapsuleEventMapper skillCapsuleEventMapper;
     private final SkillCapsuleMapper skillCapsuleMapper;
     private final SkillAtomSnapshotService skillAtomSnapshotService;
+    private final LearnerProgressService learnerProgressService;
+    private final LearnerRoadmapRepository learnerRoadmapRepository;
 
     @Override
     @CacheEvict(value = {"skill-capsules", "skill-capsules-with-atoms", "skill-capsules-search",
@@ -102,6 +106,12 @@ public class SkillCapsuleSnapshotServiceImpl implements SkillCapsuleSnapshotServ
             if (event.getSkillAtom() != null && !event.getSkillAtom().isEmpty()) {
                 smartUpdateCapsuleAtomMappings(updatedCapsule, event.getSkillAtom());
                 log.info("Successfully updated atom mappings for capsule {}", updatedCapsule.getSkillCapsuleId());
+                // Recalculate learner progress for this capsule
+                try {
+                    getAffectedLearners(updatedCapsule);
+                } catch (Exception e) {
+                    log.error("Failed to update learner progress after capsule update: {}", e.getMessage());
+                }
             }
 
             log.info("Successfully updated skill capsule with ID: {}", updatedCapsule.getSkillCapsuleId());
@@ -174,6 +184,12 @@ public class SkillCapsuleSnapshotServiceImpl implements SkillCapsuleSnapshotServ
                         event.getSkillAtom().size(), updatedCapsule.getSkillCapsuleId(),
                         updatedCapsule.getCapsuleAtomMappings().size());
 
+                try {
+                    getAffectedLearners(updatedCapsule);
+                } catch (Exception e) {
+                    log.error("Failed to update learner progress after atom assignment: {}", e.getMessage());
+                }
+
                 return updatedCapsule;
             } else {
                 throw new CapsuleAtomMappingException("No skill atom mappings provided for assignment");
@@ -185,6 +201,15 @@ public class SkillCapsuleSnapshotServiceImpl implements SkillCapsuleSnapshotServ
         } catch (Exception e) {
             log.error("Unexpected error assigning atoms to capsule with ID: {}", event.getId(), e);
             throw new SkillCapsuleProcessingException("Failed to assign atoms to capsule", e);
+        }
+    }
+
+    private void getAffectedLearners(SkillCapsuleSnapshot updatedCapsule) {
+        List<Object[]> affectedLearners = learnerRoadmapRepository.findActiveLearnersByCapsuleId(updatedCapsule.getSkillCapsuleId());
+        if (!affectedLearners.isEmpty()) {
+            List<UUID> learnerIds = affectedLearners.stream().map(arr -> (UUID) arr[0]).toList();
+            List<UUID> talentRouteIds = affectedLearners.stream().map(arr -> (UUID) arr[1]).toList();
+            learnerProgressService.bulkRecalculateProgress(learnerIds, talentRouteIds);
         }
     }
 

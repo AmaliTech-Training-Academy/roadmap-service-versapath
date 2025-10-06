@@ -7,6 +7,7 @@ import com.capstone.model.*;
 import com.capstone.repository.*;
 import com.capstone.service.LearnerProgressService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class LearnerProgressServiceImpl implements LearnerProgressService {
     private final LearnerAtomProgressRepository learnerAtomProgressRepository;
     private final LearnerRoadmapRepository learnerRoadmapRepository;
@@ -384,5 +386,24 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
             totalCapsulePercentage += currentCapsulePercentage;
         }
         return totalCapsulePercentage;
+    }
+
+    @Override
+    @Transactional
+    public void bulkRecalculateProgress(List<UUID> learnerIds, List<UUID> talentRouteIds) {
+        log.info("Bulk recalculating progress for {} learner-route pairs", learnerIds.size());
+
+        for (int i = 0; i < learnerIds.size(); i++) {
+            try {
+                RecalculateProgressRequestDto dto = RecalculateProgressRequestDto.builder()
+                        .learnerId(learnerIds.get(i))
+                        .talentRouteId(talentRouteIds.get(i))
+                        .build();
+                recalculateAndUpdateLearnerRoadmap(dto);
+            } catch (Exception e) {
+                // Log but continue with other learners
+                log.error("Failed to recalculate progress for learner {}: {}", learnerIds.get(i), e.getMessage());
+            }
+        }
     }
 }

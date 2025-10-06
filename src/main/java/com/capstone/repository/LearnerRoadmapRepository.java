@@ -37,5 +37,12 @@ public interface LearnerRoadmapRepository extends JpaRepository<LearnerRoadmap, 
     List<LearnerRoadmap> findLearnerRoadmapByUserIdANDTalentRouteId(@Param("userId") UUID userId,
                                                                     @Param("talentRouteId") UUID talentRouteId);
 
-
+    @Query("""
+         SELECT lr.userId, lr.talentRoute.talentRouteId
+         FROM LearnerRoadmap lr
+         JOIN lr.learnerTrackProgresses ltp
+         WHERE ltp.growthTrack.growthTrackId = :growthTrackId
+         AND lr.enrollmentStatus = 'ACTIVE'
+     """)
+    List<Object[]> findActiveLearnersByGrowthTrackId(@Param("growthTrackId") UUID growthTrackId);
 }

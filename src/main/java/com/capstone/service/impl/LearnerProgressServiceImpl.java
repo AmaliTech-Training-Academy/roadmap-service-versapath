@@ -3,11 +3,13 @@ package com.capstone.service.impl;
 import com.capstone.dto.request.AtomProgressRequestDto;
 import com.capstone.dto.request.RecalculateProgressRequestDto;
 import com.capstone.exception.*;
+import com.capstone.messaging.KafkaProducer;
 import com.capstone.model.*;
 import com.capstone.repository.*;
 import com.capstone.service.LearnerProgressService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.common.event.CapsuleCompletionEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +29,7 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
     private final GrowthTrackCapsuleMappingRepository growthTrackCapsuleMappingRepository;
     private final CapsuleAtomMappingRepository capsuleAtomMappingRepository;
     private final LearnerTrackProgressRepository learnerTrackProgressRepository;
+    private final KafkaProducer kafkaProducer;
 
     @Transactional
     @Override
@@ -128,9 +131,17 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
         double capsulePercentage =  atomProgressList.isEmpty() ? 0.0 : (completedAtomsNumber * 100.0)/atomProgressList.size();
         double roundedPercentage = Math.ceil(capsulePercentage * 10.0) / 10.0;
 
+        // Check if this is a new completion
+        boolean wasNotCompleted = !capsuleProgress.getStatus().equals(ProgressStatus.COMPLETED);
+
         if(roundedPercentage >= 100.0){
             capsuleProgress.setStatus(ProgressStatus.COMPLETED);
             capsuleProgress.setCompletedAt(LocalDateTime.now());
+
+            // Publish event only for new completions
+            if(wasNotCompleted) {
+                publishCapsuleCompletionEvent(capsuleProgress);
+            }
         }
         capsuleProgress.setProgressPercentage(roundedPercentage);
 
@@ -373,12 +384,19 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
 
             capsuleProgress.setProgressPercentage(currentCapsulePercentage);
 
+            // Check if this is a new completion
+            boolean wasNotCompleted = !capsuleProgress.getStatus().equals(ProgressStatus.COMPLETED);
+
             // update current capsule progress information
             if(currentCapsulePercentage == 0.0){
                 capsuleProgress.setStatus(ProgressStatus.NOT_STARTED);
             } else if (currentCapsulePercentage >= 100.0) {
                 capsuleProgress.setStatus(ProgressStatus.COMPLETED);
                 currentCapsulePercentage = 100.0;
+                // Publish event only for new completions
+                if(wasNotCompleted) {
+                    publishCapsuleCompletionEvent(capsuleProgress);
+                }
             }else{
                 capsuleProgress.setStatus(ProgressStatus.IN_PROGRESS);
             }
@@ -403,6 +421,34 @@ public class LearnerProgressServiceImpl implements LearnerProgressService {
             } catch (Exception e) {
                 // Log but continue with other learners
                 log.error("Failed to recalculate progress for learner {}: {}", learnerIds.get(i), e.getMessage());
+            }
+        }
+    }
+
+    private void publishCapsuleCompletionEvent(LearnerCapsuleProgress capsuleProgress) {
+        // Check if this is a new completion (to avoid duplicate events)
+        if (capsuleProgress.getCompletedAt() != null &&
+                capsuleProgress.getStatus().equals(ProgressStatus.COMPLETED)) {
+
+            try {
+                CapsuleCompletionEvent event = CapsuleCompletionEvent.builder()
+                        .learnerId(capsuleProgress.getLearnerTrackProgress().getLearnerRoadmap().getUserId())
+                        .capsuleId(capsuleProgress.getSkillCapsule().getSkillCapsuleId())
+                        .capsuleName(capsuleProgress.getSkillCapsule().getCapsuleName())
+                        .capsuleDescription(capsuleProgress.getSkillCapsule().getDescription())
+                        .build();
+
+                kafkaProducer.publishCapsuleCompletionEvent(event);
+
+                log.info("Published capsule completion event for learner {} completing capsule {}",
+                        event.getLearnerId(), event.getCapsuleId());
+
+            } catch (Exception e) {
+                log.error("Failed to publish capsule completion event for learner {} and capsule {}: {}",
+                        capsuleProgress.getLearnerTrackProgress().getLearnerRoadmap().getUserId(),
+                        capsuleProgress.getSkillCapsule().getSkillCapsuleId(),
+                        e.getMessage(), e);
+                throw new EventPublishingException("Failed to publish capsule event for Capsule Completion", e);
             }
         }
     }

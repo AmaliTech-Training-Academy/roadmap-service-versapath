@@ -41,6 +41,8 @@ public class SecurityConfig {
                 // Public endpoints - only actuator health
                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
 
+                .requestMatchers("/api/v1/roadmap/mentors/assigned-learners/**").hasAnyRole("MENTOR", "ADMIN")
+
                 // Admin-only endpoints (roadmap management)
                 .requestMatchers("/api/v1/roadmap/talent-routes/**").hasAnyRole("ADMIN", "LEARNER")
                 .requestMatchers("/api/v1/roadmap/growth-tracks/**").hasRole("ADMIN")
@@ -58,7 +60,6 @@ public class SecurityConfig {
                 // Learner-only endpoints (learner view)
                 .requestMatchers("/api/v1/learner/**").hasRole("LEARNER")
                 .requestMatchers(HttpMethod.POST,"/api/v1/roadmap/learner-onboarding").hasRole("LEARNER")
-                .requestMatchers("/api/v1/roadmap/mentors/assigned-learners/**").hasAnyRole("MENTOR", "ADMIN")
 
                 // Any other request requires authentication
                 .anyRequest().authenticated()

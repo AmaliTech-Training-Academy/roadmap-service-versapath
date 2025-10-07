@@ -58,7 +58,7 @@ public class SecurityConfig {
                 // Learner-only endpoints (learner view)
                 .requestMatchers("/api/v1/learner/**").hasRole("LEARNER")
                 .requestMatchers(HttpMethod.POST,"/api/v1/roadmap/learner-onboarding").hasRole("LEARNER")
-                .requestMatchers("/api/v1/roadmap/mentors/assigned-learners/").hasAnyRole("MENTOR", "ADMIN")
+                .requestMatchers("/api/v1/roadmap/mentors/assigned-learners/**").hasAnyRole("MENTOR", "ADMIN")
 
                 // Any other request requires authentication
                 .anyRequest().authenticated()

@@ -55,10 +55,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/roadmap").hasAnyRole("ADMIN", "LEARNER")
                 .requestMatchers("/api/v1/roadmap/start-progress").hasRole("LEARNER")
                 .requestMatchers("/api/v1/roadmap/complete-atom-progress").hasRole("LEARNER")
-                .requestMatchers("/api/v1/roadmap/recalculate-progress").hasAnyRole("ADMIN", "LEARNER")
+                .requestMatchers("/api/v1/roadmap/recalculate-progress").hasRole("ADMIN")
 
-                // Learner-only endpoints (learner view)
-                .requestMatchers("/api/v1/learner/**").hasRole("LEARNER")
+                // Learner endpoints (learner view) + Mentor
+                .requestMatchers("/api/v1/learner/**").hasAnyRole("LEARNER", "MENTOR")
                 .requestMatchers(HttpMethod.POST,"/api/v1/roadmap/learner-onboarding").hasRole("LEARNER")
 
                 // Any other request requires authentication

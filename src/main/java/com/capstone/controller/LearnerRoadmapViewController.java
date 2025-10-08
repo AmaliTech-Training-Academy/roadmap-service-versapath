@@ -37,11 +37,11 @@ public class LearnerRoadmapViewController {
             .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/my-tracks")
+    @GetMapping("/my-tracks/{learnerId}")
     @Operation(summary = "Get my tracks with progress and capsules",
             description = "Get all tracks for learner's roadmap with progress and associated capsules")
     public ResponseEntity<ApiResponseDto<List<LearnerTrackProgressDto>>> getMyTracks(
-            @RequestHeader("X-User-ID") UUID learnerId) {
+            @PathVariable UUID learnerId) {
 
         List<LearnerTrackProgressDto> tracks =
                 learnerRoadmapService.getLearnerTracks(learnerId);

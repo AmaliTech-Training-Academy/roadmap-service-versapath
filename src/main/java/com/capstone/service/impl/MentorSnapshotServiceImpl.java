@@ -3,6 +3,7 @@ package com.capstone.service.impl;
 import com.capstone.dto.response.LearnerDto;
 import com.capstone.dto.response.PaginatedResponseDto;
 import com.capstone.dto.response.MentorResponseDto;
+import com.capstone.dto.response.TalentRouteResponseDto;
 import com.capstone.exception.*;
 import com.capstone.mapper.MentorEventMapper;
 import com.capstone.mapper.MentorMapper;
@@ -14,6 +15,7 @@ import com.capstone.model.UserSnapshot;
 import com.capstone.repository.MentorLearnerMappingRepository;
 import com.capstone.repository.MentorSnapshotRepository;
 import com.capstone.service.MentorSnapshotService;
+import com.capstone.service.S3ImageService;
 import com.capstone.service.TalentRouteSnapshotService;
 import com.capstone.util.PaginationUtil;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +44,7 @@ public class MentorSnapshotServiceImpl implements MentorSnapshotService {
     private final TalentRouteSnapshotService talentRouteSnapshotService;
     private final MentorLearnerMappingRepository mentorLearnerMappingRepository;
     private final UserMapper userMapper;
+    private final S3ImageService s3ImageService;
 
     @Override
     @CacheEvict(value = {
@@ -269,7 +272,11 @@ public class MentorSnapshotServiceImpl implements MentorSnapshotService {
                 pageable.getPageNumber(), pageable.getPageSize());
 
         Page<MentorSnapshot> pageData = mentorSnapshotRepository.findAll(pageable);
-        Page<MentorResponseDto> dtoPage = pageData.map(mentorMapper::toBasicResponseDto);
+        Page<MentorResponseDto> dtoPage = pageData.map(entity -> {
+            MentorResponseDto dto = mentorMapper.toBasicResponseDto(entity);
+            dto.setImage(s3ImageService.generatePresignedUrl(entity.getImage()));
+            return dto;
+        });
         return PaginationUtil.toPaginatedResponse(dtoPage);
     }
 
@@ -281,7 +288,11 @@ public class MentorSnapshotServiceImpl implements MentorSnapshotService {
                 pageable.getPageNumber(), pageable.getPageSize());
 
         Page<MentorSnapshot> pageData = mentorSnapshotRepository.findAllWithRouteMappings(pageable);
-        Page<MentorResponseDto> dtoPage = pageData.map(mentorMapper::toResponseDtoWithSpecializations);
+        Page<MentorResponseDto> dtoPage = pageData.map(entity -> {
+            MentorResponseDto dto = mentorMapper.toResponseDtoWithSpecializations(entity);
+            dto.setImage(s3ImageService.generatePresignedUrl(entity.getImage()));
+            return dto;
+        });
         return PaginationUtil.toPaginatedResponse(dtoPage);
     }
 
@@ -293,7 +304,11 @@ public class MentorSnapshotServiceImpl implements MentorSnapshotService {
                 name, pageable.getPageNumber(), pageable.getPageSize());
 
         Page<MentorSnapshot> pageData = mentorSnapshotRepository.findByNameContainingIgnoreCase(name, pageable);
-        Page<MentorResponseDto> dtoPage = pageData.map(mentorMapper::toBasicResponseDto);
+        Page<MentorResponseDto> dtoPage = pageData.map(entity -> {
+            MentorResponseDto dto = mentorMapper.toBasicResponseDto(entity);
+            dto.setImage(s3ImageService.generatePresignedUrl(entity.getImage()));
+            return dto;
+        });
         return PaginationUtil.toPaginatedResponse(dtoPage);
     }
 
@@ -304,7 +319,11 @@ public class MentorSnapshotServiceImpl implements MentorSnapshotService {
         log.debug("Finding mentor by ID (basic): {}", mentorId);
 
         return mentorSnapshotRepository.findByMentorId(mentorId)
-                .map(mentorMapper::toBasicResponseDto);
+            .map(entity -> {
+                MentorResponseDto dto = mentorMapper.toBasicResponseDto(entity);
+                dto.setImage(s3ImageService.generatePresignedUrl(entity.getImage()));
+                return dto;
+            });
     }
 
     @Override
@@ -313,8 +332,12 @@ public class MentorSnapshotServiceImpl implements MentorSnapshotService {
     public Optional<MentorResponseDto> findByMentorIdWithSpecializations(UUID mentorId) {
         log.debug("Finding mentor by ID with specializations: {}", mentorId);
 
-        return mentorSnapshotRepository.findByMentorIdWithRouteMappings(mentorId)
-                .map(mentorMapper::toResponseDtoWithSpecializations);
+        return mentorSnapshotRepository.findByMentorId(mentorId)
+                .map(entity -> {
+                    MentorResponseDto dto = mentorMapper.toResponseDtoWithSpecializations(entity);
+                    dto.setImage(s3ImageService.generatePresignedUrl(entity.getImage()));
+                    return dto;
+                });
     }
 
     @Override
@@ -325,7 +348,11 @@ public class MentorSnapshotServiceImpl implements MentorSnapshotService {
                 talentRouteId, pageable.getPageNumber(), pageable.getPageSize());
 
         Page<MentorSnapshot> pageData = mentorSnapshotRepository.findBySpecializationTalentRouteId(talentRouteId, pageable);
-        Page<MentorResponseDto> dtoPage = pageData.map(mentorMapper::toBasicResponseDto);
+        Page<MentorResponseDto> dtoPage = pageData.map(entity -> {
+            MentorResponseDto dto = mentorMapper.toBasicResponseDto(entity);
+            dto.setImage(s3ImageService.generatePresignedUrl(entity.getImage()));
+            return dto;
+        });
         return PaginationUtil.toPaginatedResponse(dtoPage);
     }
 
@@ -335,7 +362,11 @@ public class MentorSnapshotServiceImpl implements MentorSnapshotService {
                 .orElseThrow( () -> new MentorNotFoundException("A mentor provided doesn't exist")
                 );
         Page<UserSnapshot> pageData = mentorLearnerMappingRepository.findLearnersByMentorId(mentor.getMentorId(), pageable);
-        Page<LearnerDto> dtoPage = pageData.map(userMapper::toDto);
+        Page<LearnerDto> dtoPage = pageData.map(entity -> {
+            LearnerDto dto = userMapper.toDto(entity);
+            dto.setImage(s3ImageService.generatePresignedUrl(entity.getImage()));
+            return dto;
+        });
         return PaginationUtil.toPaginatedResponse(dtoPage);
 
     }

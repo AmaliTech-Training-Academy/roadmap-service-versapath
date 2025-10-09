@@ -55,6 +55,9 @@ public class MentorSnapshot {
     @Column(name = "assigned_learner", nullable = false)
     private Integer assignedLearner = 0;
 
+    @Column(name = "image", columnDefinition = "TEXT")
+    private String image;
+
     @OneToMany(mappedBy = "mentorSnapshot", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @Builder.Default
     private List<MentorRouteMapping> mentorRouteMappings = new ArrayList<>();

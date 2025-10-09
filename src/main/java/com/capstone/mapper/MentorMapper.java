@@ -7,19 +7,20 @@ import com.capstone.model.MentorRouteMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface MentorMapper {
 
     @Mapping(source = "mentorId", target = "mentorId")
     @Mapping(source = "id", target = "id")
+    @Mapping(source = "image", target = "image")
     @Mapping(source = "assignedLearner", target = "totalAssignedLearners")
     @Mapping(target = "specializations", ignore = true)
     MentorResponseDto toBasicResponseDto(MentorSnapshot mentorSnapshot);
 
     @Mapping(source = "mentorId", target = "mentorId")
     @Mapping(source = "id", target = "id")
+    @Mapping(source = "image", target = "image")
     @Mapping(source = "assignedLearner", target = "totalAssignedLearners")
     @Mapping(source = "mentorRouteMappings", target = "specializations")
     MentorResponseDto toResponseDtoWithSpecializations(MentorSnapshot mentorSnapshot);

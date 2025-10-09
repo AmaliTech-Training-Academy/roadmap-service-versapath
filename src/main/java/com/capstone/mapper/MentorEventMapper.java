@@ -10,6 +10,7 @@ import org.mapstruct.MappingTarget;
 public interface MentorEventMapper {
 
     @Mapping(source = "versapathUserId", target = "mentorId")
+    @Mapping(source = "imageUrl", target = "image")
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "assignedLearner", constant = "0")
     @Mapping(target = "createdAt", ignore = true)
@@ -18,6 +19,7 @@ public interface MentorEventMapper {
     MentorSnapshot toMentorSnapshot(ProduceMentorEvent event);
 
     @Mapping(target = "mentorId", ignore = true)
+    @Mapping(source = "imageUrl", target = "image")
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "assignedLearner", ignore = true)
     @Mapping(target = "createdAt", ignore = true)

@@ -16,4 +16,5 @@ public class LearnerDto {
     private String email;
     private String firstName;
     private String lastName;
+    private String image;
 }

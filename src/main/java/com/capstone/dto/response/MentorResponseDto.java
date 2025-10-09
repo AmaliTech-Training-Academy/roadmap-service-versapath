@@ -22,5 +22,6 @@ public class MentorResponseDto {
     private String firstName;
     private String lastName;
     private Integer totalAssignedLearners;
+    private String image;
     private List<MentorSpecializationDto> specializations;
 }

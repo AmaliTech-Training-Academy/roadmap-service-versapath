@@ -48,6 +48,9 @@ public class UserSnapshot {
     @Column(name = "last_name", nullable = false)
     private String lastName;
 
+    @Column(name = "image", columnDefinition = "TEXT")
+    private String image;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

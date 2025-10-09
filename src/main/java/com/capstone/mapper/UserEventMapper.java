@@ -10,12 +10,14 @@ import org.mapstruct.MappingTarget;
 public interface UserEventMapper {
 
     @Mapping(source = "versapathUserId", target = "userId")
+    @Mapping(source = "imageUrl", target = "image")
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     UserSnapshot toUserSnapshot(ProduceUserEvent event);
 
     @Mapping(target = "userId", ignore = true)
+    @Mapping(source = "imageUrl", target = "image")
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)

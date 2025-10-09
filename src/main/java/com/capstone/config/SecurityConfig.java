@@ -58,7 +58,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/roadmap/recalculate-progress").hasRole("ADMIN")
 
                 // Learner endpoints (learner view) + Mentor
-                .requestMatchers("/api/v1/learner/**").hasAnyRole("LEARNER", "MENTOR")
+                .requestMatchers("/api/v1/learner/**").hasAnyRole("LEARNER", "MENTOR", "ADMIN")
                 .requestMatchers(HttpMethod.POST,"/api/v1/roadmap/learner-onboarding").hasRole("LEARNER")
 
                 // Any other request requires authentication

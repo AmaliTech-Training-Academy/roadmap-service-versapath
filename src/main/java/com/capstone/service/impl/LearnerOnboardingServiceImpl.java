@@ -87,6 +87,7 @@ public class LearnerOnboardingServiceImpl implements LearnerOnboardingService {
             LearnerOnBoardingEvent learnerEvent = LearnerOnBoardingEvent.builder()
                     .learnerId(savedOnboarding.getLearner().getUserId())
                     .talentRouteId(savedOnboarding.getTalentRoute().getTalentRouteId())
+                    .growthTrackId(savedOnboarding.getGrowthTrack().getGrowthTrackId())
                     .requiresOnboarding(false)
                     .build();
             kafkaProducer.produce(learnerEvent);
